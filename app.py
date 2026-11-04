@@ -267,8 +267,13 @@ HTML = """<!DOCTYPE html>
 async def index(request):
     return HTMLResponse(HTML)
 
-async def on_startup():
-    asyncio.create_task(market_loop())
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app):
+    task = asyncio.create_task(market_loop())
+    yield
+    task.cancel()
 
 app = Starlette(
     routes=[
@@ -279,5 +284,5 @@ app = Starlette(
         Route("/api/upgrade", git_upgrade, methods=["POST"]),
         WebSocketRoute("/ws", ws_stream),
     ],
-    on_startup=[on_startup],
+    lifespan=lifespan,
 )
