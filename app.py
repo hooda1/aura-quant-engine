@@ -1,10 +1,10 @@
 import asyncio, json, os, random, subprocess
 from datetime import datetime
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from starlette.applications import Starlette
+from starlette.responses import HTMLResponse, JSONResponse
+from starlette.routing import Route, WebSocketRoute
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
-app = FastAPI(title="AURA // Open-Core XAUUSD & BTC Quant Terminal")
 STRAT_FILE = "user_data/strategies.json"
 
 def load_strategies():
@@ -29,21 +29,11 @@ STATE = {
     },
     "strategies": load_strategies(),
     "logs": [
-        "[SYSTEM] AURA Open-Core v1.0 Initialized (Persistent user_data/ active)",
+        "[SYSTEM] AURA Open-Core v1.0 Initialized (Pure-Python Engine Active)",
         "[FEED] XAUUSD ($4,036.17) & BTCUSD ($78,463.10) Streams Locked",
         "[GUARDRAIL] Spread Filter & Daily Drawdown Circuit Breaker ARMED"
     ]
 }
-
-class StrategyInput(BaseModel):
-    name: str
-    symbol: str
-    platform: str
-    indicator: str
-    rsi_threshold: float
-    max_spread: float
-    risk_usd: float
-    rr_ratio: float
 
 def log_event(msg: str):
     ts = datetime.now().strftime("%H:%M:%S")
@@ -80,53 +70,44 @@ async def market_loop():
                 continue
             sym = strat["symbol"]
             mkt = STATE["prices"][sym]
-            if mkt["spread"] > strat["max_spread"]:
+            if mkt["spread"] > float(strat["max_spread"]):
                 continue
-            if mkt["ema9"] > mkt["ema21"] and mkt["rsi"] >= strat["rsi_threshold"]:
+            if mkt["ema9"] > mkt["ema21"] and mkt["rsi"] >= float(strat["rsi_threshold"]):
                 if random.random() < 0.07:
                     strat["trades_taken"] += 1
                     STATE["daily_pnl"] = round(STATE["daily_pnl"] + random.uniform(-20, 75), 2)
                     save_strategies(STATE["strategies"])
-                    await execute_order(sym, "BUY", strat["risk_usd"], strat["rr_ratio"], strat["platform"], strat["name"])
+                    await execute_order(sym, "BUY", float(strat["risk_usd"]), float(strat["rr_ratio"]), strat["platform"], strat["name"])
 
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(market_loop())
-
-@app.post("/api/strategy")
-async def add_strategy(s: StrategyInput):
-    new_s = s.dict()
-    new_s["id"] = f"STRAT-0{len(STATE['strategies']) + 1}"
-    new_s["active"] = True
-    new_s["trades_taken"] = 0
-    STATE["strategies"].insert(0, new_s)
+async def add_strategy(request):
+    s = await request.json()
+    s["id"] = f"STRAT-0{len(STATE['strategies']) + 1}"
+    s["active"] = True
+    s["trades_taken"] = 0
+    STATE["strategies"].insert(0, s)
     save_strategies(STATE["strategies"])
-    log_event(f"SAVED TO user_data/: '{s.name}' on {s.symbol} ({s.platform})")
-    return {"status": "saved"}
+    log_event(f"SAVED TO user_data/: '{s['name']}' on {s['symbol']} ({s['platform']})")
+    return JSONResponse({"status": "saved"})
 
-@app.post("/api/killswitch")
-async def toggle_kill():
+async def toggle_kill(request):
     STATE["kill_switch"] = not STATE["kill_switch"]
     log_event(f"KILL SWITCH {'ENGAGED' if STATE['kill_switch'] else 'RELEASED'}")
-    return {"kill_switch": STATE["kill_switch"]}
+    return JSONResponse({"kill_switch": STATE["kill_switch"]})
 
-@app.post("/api/mode")
-async def toggle_mode():
+async def toggle_mode(request):
     STATE["execution_mode"] = "LIVE" if STATE["execution_mode"] == "PAPER" else "PAPER"
     log_event(f"MODE CHANGED TO {STATE['execution_mode']}")
-    return {"mode": STATE["execution_mode"]}
+    return JSONResponse({"mode": STATE["execution_mode"]})
 
-@app.post("/api/upgrade")
-async def git_upgrade():
+async def git_upgrade(request):
     try:
         out = subprocess.check_output(["git", "pull", "origin", "main"], stderr=subprocess.STDOUT).decode()
         log_event(f"GITHUB UPGRADE: {out.strip()}")
-        return {"status": "ok", "msg": out}
-    except Exception as e:
+        return JSONResponse({"status": "ok", "msg": out})
+    except Exception:
         log_event("GITHUB NOTICE: Link your remote GitHub repo first (user_data/ is protected).")
-        return {"status": "notice"}
+        return JSONResponse({"status": "notice"})
 
-@app.websocket("/ws")
 async def ws_stream(ws: WebSocket):
     await ws.accept()
     try:
@@ -149,7 +130,6 @@ HTML = """<!DOCTYPE html>
   </style>
 </head>
 <body class="p-3 md:p-6">
-  <!-- SUPPORTER & 1-CLICK GITHUB UPGRADE BAR -->
   <div class="glass rounded-2xl p-3 mb-4 flex flex-wrap items-center justify-between gap-2 border border-amber-500/30">
     <div class="flex items-center gap-2 text-xs">
       <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold">OPEN-CORE v1.0</span>
@@ -162,7 +142,6 @@ HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- HEADER -->
   <header class="glass rounded-2xl p-4 mb-4 flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-3">
       <div class="h-3 w-3 rounded-full bg-emerald-400 animate-ping"></div>
@@ -178,7 +157,6 @@ HTML = """<!DOCTYPE html>
     </div>
   </header>
 
-  <!-- TICKER CARDS -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
     <div class="glass rounded-2xl p-5 border-amber-500/30">
       <div class="flex justify-between">
@@ -200,7 +178,6 @@ HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- CHART + STRATEGY DEPLOYER -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
     <div class="glass rounded-2xl p-4 lg:col-span-2"><div class="text-xs font-mono text-slate-400 mb-2">LIVE XAUUSD TICK STREAM</div><div id="tvchart" class="w-full h-64 rounded-xl overflow-hidden"></div></div>
     <div class="glass rounded-2xl p-4 space-y-2.5 text-xs">
@@ -226,13 +203,11 @@ HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- ACTIVE BOTS & LOGS -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
     <div class="glass rounded-2xl p-4"><h3 class="text-xs font-bold uppercase text-slate-400 mb-2">Saved Strategies (user_data/strategies.json)</h3><div id="stratList" class="space-y-2"></div></div>
     <div class="glass rounded-2xl p-4"><h3 class="text-xs font-bold uppercase text-slate-400 mb-2">Real-Time Execution Stream</h3><div id="logBox" class="h-44 overflow-y-auto font-mono text-xs space-y-1 bg-slate-950/80 p-3 rounded-xl"></div></div>
   </div>
 
-  <!-- SUPPORTER MODAL -->
   <div id="tipModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
     <div class="glass rounded-2xl p-6 max-w-md w-full border border-amber-400/40">
       <h3 id="tipTitle" class="text-lg font-bold text-amber-300">Support AURA Open-Core</h3>
@@ -254,28 +229,13 @@ HTML = """<!DOCTYPE html>
     });
     const series = chart.addAreaSeries({ lineColor: '#f59e0b', topColor: 'rgba(245, 158, 11, 0.3)', bottomColor: 'rgba(245, 158, 11, 0.0)' });
 
-    const ws = new WebSocket(`ws://${location.host}/ws`);
-    ws.onmessage = (e) => {
-      const d = JSON.parse(e.data);
-      const x = d.prices.XAUUSD, b = d.prices.BTCUSD;
-      document.getElementById('xauPrice').innerText = `$${x.price.toFixed(2)}`;
-      document.getElementById('xauSpread').innerText = `$${x.spread.toFixed(2)}`;
-      document.getElementById('xauEma9').innerText = x.ema9;
-      document.getElementById('xauEma21').innerText = x.ema21;
-      document.getElementById('xauRsi').innerText = x.rsi;
-      document.getElementById('btcPrice').innerText = `$${b.price.toFixed(2)}`;
-      document.getElementById('btcSpread').innerText = `$${b.spread.toFixed(2)}`;
-      document.getElementById('btcEma9').innerText = b.ema9;
-      document.getElementById('btcEma21').innerText = b.ema21;
-      document.getElementById('btcRsi').innerText = b.rsi;
-      document.getElementById('dailyPnl').innerText = (d.daily_pnl >= 0 ? '+$' : '-$') + Math.abs(d.daily_pnl).toFixed(2);
-      document.getElementById('modeBadge').innerText = `MODE: ${d.execution_mode}`;
+    const ws = new WebSocket(`ws://${location.host}/ws`); ws.onmessage = (e) => { const d = JSON.parse(e.data); const x = d.prices.XAUUSD, b = d.prices.BTCUSD; document.getElementById('xauPrice').innerText = `$${x.price.toFixed(2)}`; document.getElementById('xauSpread').innerText = `$${x.spread.toFixed(2)}`; document.getElementById('xauEma9').innerText = x.ema9; document.getElementById('xauEma21').innerText = x.ema21; document.getElementById('xauRsi').innerText = x.rsi; document.getElementById('btcPrice').innerText = `$${b.price.toFixed(2)}`; document.getElementById('btcSpread').innerText = `$${b.spread.toFixed(2)}`; document.getElementById('btcEma9').innerText = b.ema9; document.getElementById('btcEma21').innerText = b.ema21; document.getElementById('btcRsi').innerText = b.rsi; document.getElementById('dailyPnl').innerText = (d.daily_pnl >= 0 ? '+$' : '-$') + Math.abs(d.daily_pnl).toFixed(2); document.getElementById('modeBadge').innerText = `MODE: ${d.execution_mode}`;
       series.update({ time: Math.floor(Date.now() / 1000), value: x.price });
 
       document.getElementById('stratList').innerHTML = d.strategies.map(s => `
         <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex justify-between items-center text-xs">
           <div><div class="font-bold text-white">${s.name} <span class="text-amber-400">[${s.symbol}]</span></div>
-          <div class="text-slate-400">${s.platform} | Risk: $${s.risk_usd} | Max Spread: $${s.max_spread}</div></div>
+          <div class="text-slate-400">${s.platform} | Risk: $${s.risk_usd} \vert{} Max Spread:$${s.max_spread}</div></div>
           <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">Trades: ${s.trades_taken}</span>
         </div>`).join('');
       document.getElementById('logBox').innerHTML = d.logs.map(l => `<div>${l}</div>`).join('');
@@ -304,6 +264,20 @@ HTML = """<!DOCTYPE html>
 </body>
 </html>"""
 
-@app.get("/", response_class=HTMLResponse)
-async def index():
-    return HTML
+async def index(request):
+    return HTMLResponse(HTML)
+
+async def on_startup():
+    asyncio.create_task(market_loop())
+
+app = Starlette(
+    routes=[
+        Route("/", index),
+        Route("/api/strategy", add_strategy, methods=["POST"]),
+        Route("/api/killswitch", toggle_kill, methods=["POST"]),
+        Route("/api/mode", toggle_mode, methods=["POST"]),
+        Route("/api/upgrade", git_upgrade, methods=["POST"]),
+        WebSocketRoute("/ws", ws_stream),
+    ],
+    on_startup=[on_startup],
+)
