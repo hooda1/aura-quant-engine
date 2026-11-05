@@ -3,8 +3,8 @@ title: AURA Titanium Quant Terminal
 emoji: ⚡
 colorFrom: yellow
 colorTo: green
-sdk: gradio
-app_port: 7860
+sdk: static
+pinned: false
 ---
 
 # ⚡ AURA Titanium — Open-Core XAUUSD & BTCUSD Quantitative Terminal
