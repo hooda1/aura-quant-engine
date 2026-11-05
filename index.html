@@ -40,6 +40,7 @@
           <span class="font-extrabold text-base tracking-tight text-white">AURA TITANIUM</span>
           <span id="subBadge" class="text-[10px] mono uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/35">Open-Core Live</span>
           <span id="liveVisitorsBadge" class="text-[10px] mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">👁 Visits: ...</span>
+          <span id="tgStatusBadge" onclick="openStatsModal()" class="cursor-pointer text-[10px] mono px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">✈️ TG Alerts: Setup</span>
         </div>
         <div id="syncStatus" class="text-[11px] text-neutral-400 mono">Connecting Binance WebSocket & FXCM Basis...</div>
       </div>
@@ -51,7 +52,7 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-2">
-      <button onclick="openStatsModal()" class="cred-pill hover:border-amber-400/40 px-3 py-2 rounded-2xl text-xs font-semibold text-amber-300 transition">📊 Admin Stats</button>
+      <button onclick="openStatsModal()" class="cred-pill hover:border-amber-400/40 px-3 py-2 rounded-2xl text-xs font-semibold text-amber-300 transition">📊 Admin & Telegram</button>
       <button onclick="downloadCsv()" class="cred-pill hover:border-white/30 px-3 py-2 rounded-2xl text-xs font-semibold text-neutral-200 transition">⬇ 100-Trade CSV</button>
       <button id="authBtn" onclick="document.getElementById('authModal').classList.remove('hidden')" class="cred-pill hover:border-white/30 px-3.5 py-2 rounded-2xl text-xs font-semibold text-emerald-400 transition">👤 Sign In / Subscribe</button>
       <button onclick="document.getElementById('sponsorModal').classList.remove('hidden')" class="px-3.5 py-2 rounded-2xl text-xs font-bold bg-gradient-to-r from-amber-300 to-amber-500 text-black shadow-lg shadow-amber-500/20 hover:opacity-95 transition">☕ Fuel Devs</button>
@@ -96,8 +97,8 @@
   <section class="cred-card rounded-3xl p-6 mb-6">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
       <div>
-        <span class="text-[10px] mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Live Institutional Order Book Desk</span>
-        <h2 class="text-lg font-bold text-white mt-1.5">Active Pending Limit Orders (Auto-Calculated Lot Size)</h2>
+        <span class="text-[10px] mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Live Institutional Order Book Desk · Auto Telegram Trigger</span>
+        <h2 class="text-lg font-bold text-white mt-1.5">Active Pending Limit Orders (Auto-Fires Telegram Alert When Price Touches Limit)</h2>
       </div>
       <div id="stratTitleBadge" class="text-xs mono text-neutral-400"></div>
     </div>
@@ -196,7 +197,7 @@
           <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center text-black font-extrabold text-lg">A</div>
           <div>
             <h3 class="text-lg font-bold text-white">Trader Login & Subscription</h3>
-            <p class="text-xs text-neutral-400">Track your daily login streak & Pro status</p>
+            <p class="text-xs text-neutral-400">Triggers instant Telegram notification to Admin</p>
           </div>
         </div>
         <button onclick="document.getElementById('authModal').classList.add('hidden')" class="text-neutral-400 hover:text-white text-sm">✕</button>
@@ -226,13 +227,13 @@
     </div>
   </div>
 
-  <!-- 2. ADMIN VISITOR, LOGIN & SUBSCRIBER ANALYTICS MODAL -->
+  <!-- 2. ADMIN VISITOR, LOGIN, SUBSCRIBER & TELEGRAM WEBHOOK MODAL -->
   <div id="statsModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
-    <div class="cred-card rounded-3xl p-6 max-w-2xl w-full border border-amber-400/30 max-h-[90vh] overflow-y-auto">
+    <div class="cred-card rounded-3xl p-6 max-w-2xl w-full border border-amber-400/30 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
         <div>
-          <span class="text-[10px] mono uppercase px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300">Real-Time Telemetry & Supabase Sync</span>
-          <h3 class="text-lg font-bold text-white mt-1.5">AURA Audience, Logins & Subscriber Analytics</h3>
+          <span class="text-[10px] mono uppercase px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300">Real-Time Telemetry + Telegram Bot Engine</span>
+          <h3 class="text-lg font-bold text-white mt-1.5">AURA Admin Analytics & Push Notification Hub</h3>
         </div>
         <button onclick="document.getElementById('statsModal').classList.add('hidden')" class="cred-pill px-3 py-1.5 rounded-xl text-xs text-white">✕ Close</button>
       </div>
@@ -256,6 +257,23 @@
         </div>
       </div>
 
+      <!-- TELEGRAM BOT PUSH CONFIGURATION -->
+      <div class="p-4 rounded-2xl bg-sky-950/20 border border-sky-500/30 text-xs space-y-2.5 mb-5">
+        <div class="flex items-center justify-between">
+          <div class="font-bold text-sky-400">✈️ Telegram Bot Instant Push Triggers (Signups + Order Fills)</div>
+          <span id="tgConfigStatus" class="text-[10px] mono text-neutral-400">Not configured</span>
+        </div>
+        <p class="text-neutral-300 text-[11px]">Enter your Telegram Bot Token (from <code class="text-amber-300">@BotFather</code>) and your Chat ID (from <code class="text-amber-300">@userinfobot</code>). AURA will automatically message your phone whenever someone subscribes or a live pending order triggers!</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <input id="tgBotTokenInput" type="password" placeholder="Bot Token (e.g. 7123456:AAH...)" class="bg-black/80 border border-white/15 rounded-xl px-3 py-2 text-xs mono text-white">
+          <input id="tgChatIdInput" type="text" placeholder="Chat ID (e.g. 123456789 or -100...)" class="bg-black/80 border border-white/15 rounded-xl px-3 py-2 text-xs mono text-white">
+        </div>
+        <div class="flex flex-wrap gap-2 pt-1">
+          <button onclick="saveTelegramConfig()" class="px-4 py-2 rounded-xl bg-sky-400 text-black font-bold text-xs hover:bg-sky-300 transition">💾 Save Telegram Bot</button>
+          <button onclick="testTelegramPing()" class="px-4 py-2 rounded-xl cred-pill text-sky-300 font-semibold text-xs hover:border-sky-400/50 transition">📨 Send Test Ping to Phone</button>
+        </div>
+      </div>
+
       <div class="mb-4">
         <div class="text-xs font-bold text-white mb-2">Recent Member Logins & Subscription Ledger</div>
         <div class="overflow-x-auto rounded-2xl border border-white/10 bg-black/40">
@@ -275,7 +293,6 @@
 
       <div class="p-4 rounded-2xl bg-black/60 border border-white/10 text-xs space-y-2">
         <div class="font-bold text-amber-300">⚡ Optional: Connect Your Free Supabase Cloud Database</div>
-        <p class="text-neutral-400 text-[11px]">Paste your Supabase Project URL & Anon Key below to sync all logins and subscribers across every device globally:</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
           <input id="sbUrlInput" type="text" placeholder="https://xyz.supabase.co" class="bg-black border border-white/15 rounded-xl px-3 py-2 text-xs mono text-white">
           <input id="sbKeyInput" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5c..." class="bg-black border border-white/15 rounded-xl px-3 py-2 text-xs mono text-white">
@@ -309,7 +326,110 @@
     };
     document.getElementById('xauBasisInput').value = BASIS_OFFSETS['XAUUSD'];
 
-    // SUPABASE + LOCAL TELEMETRY ENGINE (NEVER CRASHES IF UNCONFIGURED)
+    // =========================================================================
+    // TELEGRAM BOT PUSH NOTIFICATION ENGINE (SIGNUPS + PENDING ORDER TRIGGERS)
+    // =========================================================================
+    // Optional: You can hardcode defaults below or paste them inside the UI's Admin Modal
+    const DEFAULT_TG_BOT_TOKEN = '';
+    const DEFAULT_TG_CHAT_ID = '';
+    const triggeredOrderKeys = new Set();
+
+    function getTgCreds() {
+      return {
+        token: localStorage.getItem('aura_tg_token') || DEFAULT_TG_BOT_TOKEN,
+        chatId: localStorage.getItem('aura_tg_chat_id') || DEFAULT_TG_CHAT_ID
+      };
+    }
+
+    function updateTgBadge() {
+      const { token, chatId } = getTgCreds();
+      const b = document.getElementById('tgStatusBadge');
+      const s = document.getElementById('tgConfigStatus');
+      document.getElementById('tgBotTokenInput').value = token;
+      document.getElementById('tgChatIdInput').value = chatId;
+      if (token && chatId) {
+        b.innerText = '✈️ TG Alerts: ON';
+        b.className = 'cursor-pointer text-[10px] mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+        if (s) s.innerText = '✅ Active & Armed';
+      } else {
+        b.innerText = '✈️ TG Alerts: Setup';
+        if (s) s.innerText = 'Waiting for Token & Chat ID';
+      }
+    }
+    updateTgBadge();
+
+    function saveTelegramConfig() {
+      const token = document.getElementById('tgBotTokenInput').value.trim();
+      const chatId = document.getElementById('tgChatIdInput').value.trim();
+      localStorage.setItem('aura_tg_token', token);
+      localStorage.setItem('aura_tg_chat_id', chatId);
+      updateTgBadge();
+      alert('✅ Telegram Bot credentials saved! Click "Send Test Ping" to verify.');
+    }
+
+    async function sendTelegramAlert(messageText) {
+      const { token, chatId } = getTgCreds();
+      if (!token || !chatId) return false;
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: messageText,
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
+          })
+        });
+        return res.ok;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function testTelegramPing() {
+      saveTelegramConfig();
+      const xauP = STATE.assets['XAUUSD']?.live?.price || '--';
+      const btcP = STATE.assets['BTCUSD']?.live?.price || '--';
+      const ok = await sendTelegramAlert(
+        `⚡ <b>AURA TITANIUM — LIVE TELEMETRY CONNECTED</b>\n\n` +
+        `• <b>XAUUSD (FXCM Calibrated):</b> $${xauP}\n` +
+        `• <b>BTCUSD (Binance Live):</b> $${btcP}\n` +
+        `• <b>Global Visits:</b> ${globalVisits}\n` +
+        `• <b>Status:</b> Armed for New Subscriber Signups & Pending Limit Order Fills!`
+      );
+      alert(ok ? '🚀 Test ping delivered to your Telegram!' : '❌ Failed to send. Check your Bot Token & Chat ID (and make sure you tapped /start in your bot chat first).');
+    }
+
+    function checkPendingOrderTriggers(sym, livePrice) {
+      const asset = STATE.assets[sym];
+      if (!asset || !asset.pending_orders) return;
+      for (const p of asset.pending_orders) {
+        const key = `${sym}_${p.type}_${p.limit_price}`;
+        if (triggeredOrderKeys.has(key)) continue;
+
+        const isBuyHit = p.type === 'BUY LIMIT' && livePrice <= p.limit_price;
+        const isSellHit = p.type === 'SELL LIMIT' && livePrice >= p.limit_price;
+
+        if (isBuyHit || isSellHit) {
+          triggeredOrderKeys.add(key);
+          sendTelegramAlert(
+            `🚨 <b>AURA INSTITUTIONAL ORDER TRIGGERED (${sym})</b>\n\n` +
+            `• <b>Order Type:</b> ${p.type} FILLED @ <b>$${livePrice.toFixed(2)}</b>\n` +
+            `• <b>Limit Level:</b> $${p.limit_price.toFixed(2)}\n` +
+            `• <b>Stop-Loss:</b> $${p.sl.toFixed(2)}\n` +
+            `• <b>TP1 (Auto-BE):</b> $${p.tp1.toFixed(2)}\n` +
+            `• <b>TP2 (Runner):</b> $${p.tp2.toFixed(2)}\n` +
+            `• <b>Confluence:</b> ${p.condition}\n` +
+            `• <b>Verified Strategy Win Rate:</b> ${asset.win_rate}%`
+          );
+        }
+      }
+    }
+
+    // =========================================================================
+    // SUPABASE + LOCAL TELEMETRY ENGINE
+    // =========================================================================
     let supabaseClient = null;
     function initSupabase() {
       const url = localStorage.getItem('aura_sb_url') || '';
@@ -330,7 +450,6 @@
       openStatsModal();
     }
 
-    // GLOBAL PAGE VISIT COUNTER (AUTOMATICALLY INCREMENTS ON EVERY VISIT)
     let globalVisits = parseInt(localStorage.getItem('aura_local_visits') || '0') + 1;
     localStorage.setItem('aura_local_visits', globalVisits);
     async function trackGlobalVisit() {
@@ -358,7 +477,6 @@
         return;
       }
 
-      // 1. If Supabase is connected, sync with Supabase Auth
       if (supabaseClient) {
         if (mode === 'signup') {
           await supabaseClient.auth.signUp({ email, password, options: { data: { subscription_tier: tier } } });
@@ -367,7 +485,6 @@
         }
       }
 
-      // 2. Always record in local & session telemetry ledger for instant DAU/Subscriber stats
       const users = getLocalUsers();
       const nowStr = fmtTs(Date.now());
       const todayKey = new Date().toISOString().slice(0, 10);
@@ -383,6 +500,15 @@
       }
       localStorage.setItem('aura_users_ledger', JSON.stringify(users));
       localStorage.setItem('aura_active_user', JSON.stringify(existing));
+
+      // FIRE INSTANT TELEGRAM NOTIFICATION ON SIGNUP OR LOGIN
+      sendTelegramAlert(
+        `👤 <b>AURA ${mode === 'signup' ? 'NEW SUBSCRIBER REGISTERED' : 'TRADER DAILY LOGIN'}</b>\n\n` +
+        `• <b>Email:</b> ${email}\n` +
+        `• <b>Tier:</b> ${existing.tier}\n` +
+        `• <b>Total Logins:</b> #${existing.logins}\n` +
+        `• <b>Time:</b> ${nowStr}`
+      );
 
       applyActiveUser();
       msgEl.innerText = `✅ Logged in as ${email} (${existing.tier})`;
@@ -400,6 +526,7 @@
     applyActiveUser();
 
     function openStatsModal() {
+      updateTgBadge();
       const users = getLocalUsers();
       const todayKey = new Date().toISOString().slice(0, 10);
       const dau = users.filter(u => u.last_date === todayKey).length;
@@ -604,7 +731,7 @@
         STATE.rawKlines['BTCUSD'] = kBtc;
         STATE.assets['XAUUSD'] = runRealBacktest(kXau, 'XAUUSD', 100);
         STATE.assets['BTCUSD'] = runRealBacktest(kBtc, 'BTCUSD', 150);
-        document.getElementById('syncStatus').innerText = 'Live WebSocket Active · FXCM Calibrated · Telemetry Online';
+        document.getElementById('syncStatus').innerText = 'Live WebSocket Active · FXCM Calibrated · Telegram Trigger Armed';
         renderAsset();
         connectWebSocket();
       } catch (e) {
@@ -624,6 +751,10 @@
         const rawPrice = parseFloat(msg.p);
         const calibratedPrice = +(rawPrice + BASIS_OFFSETS[sym]).toFixed(2);
         STATE.assets[sym].live.price = calibratedPrice;
+
+        // Check if this live tick triggered any Pending Limit Order
+        checkPendingOrderTriggers(sym, calibratedPrice);
+
         const candles = STATE.assets[sym].candles;
         if (candles.length > 0) {
           const lastC = candles[candles.length - 1];
@@ -691,7 +822,10 @@
             <div><div class="text-[10px] text-neutral-400">TP1 (AUTO-BE)</div><div class="text-emerald-400 font-semibold">$${p.tp1.toFixed(2)}</div></div>
             <div><div class="text-[10px] text-neutral-400">TP2 (RUNNER)</div><div class="text-amber-300 font-semibold">$${p.tp2.toFixed(2)}</div></div>
           </div>
-          <div class="text-xs text-neutral-300"><span class="text-neutral-500">Trigger (${p.distance_usd} USD away):</span> ${p.condition}</div>
+          <div class="flex items-center justify-between text-xs text-neutral-300">
+            <span><span class="text-neutral-500">Trigger (${p.distance_usd} USD away):</span> ${p.condition}</span>
+            <button onclick="sendTelegramAlert('📌 <b>AURA PENDING ORDER WATCH (${p.symbol})</b>\\n• ${p.type} @ $${p.limit_price.toFixed(2)}\\n• SL: $${p.sl.toFixed(2)} | TP1: $${p.tp1.toFixed(2)} | TP2: $${p.tp2.toFixed(2)}')" class="cred-pill px-2.5 py-1 rounded-lg text-[10px] mono text-sky-400 hover:border-sky-400/40 shrink-0 ml-2">✈️ Push to TG</button>
+          </div>
         </div>`;
       }).join('');
 
