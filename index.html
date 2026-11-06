@@ -27,6 +27,7 @@
     .cred-pill { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.09); }
     .seg-active { background: #F4F4F6; color: #070709; font-weight: 800; box-shadow: 0 4px 14px rgba(255,255,255,0.2); }
     .gold-active { background: linear-gradient(135deg, #FDE047 0%, #F59E0B 100%); color: #000; font-weight: 800; }
+    .tf-active { background: #10B981; color: #000; font-weight: 800; }
   </style>
 </head>
 <body class="p-3 md:p-6 max-w-[1460px] mx-auto pb-24">
@@ -38,25 +39,31 @@
       <div>
         <div class="flex items-center gap-2 flex-wrap">
           <span class="font-extrabold text-base tracking-tight text-white">AURA TITANIUM</span>
-          <span class="text-[10px] mono uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/35">🔒 Non-Repainting Closed-Candle Lock</span>
+          <span class="text-[10px] mono uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/35">🔒 Closed-Candle Lock</span>
           <span id="liveVisitorsBadge" class="text-[10px] mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">👁 Visits: ...</span>
           <span class="text-[10px] mono px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">✈️ TG Bot: Connected</span>
         </div>
-        <div id="syncStatus" class="text-[11px] text-neutral-400 mono mt-0.5">Syncing deterministic closed-candle institutional feed...</div>
+        <div id="syncStatus" class="text-[11px] text-neutral-400 mono mt-0.5">Syncing 1,000 real candles from Binance Vision...</div>
       </div>
     </div>
 
-    <!-- ASSET & STRATEGY ENGINE SELECTOR -->
+    <!-- ASSET, TIMEFRAME (1m / 5m) & ENGINE SELECTOR -->
     <div class="flex flex-wrap items-center gap-2">
       <div class="cred-pill p-1 rounded-2xl flex items-center gap-1 text-xs">
         <button id="btn-XAUUSD" onclick="selectAsset('XAUUSD')" class="seg-active px-3.5 py-1.5 rounded-xl transition">XAUUSD · Gold</button>
         <button id="btn-BTCUSD" onclick="selectAsset('BTCUSD')" class="px-3.5 py-1.5 rounded-xl text-neutral-400 hover:text-white transition">BTCUSD · Bitcoin</button>
       </div>
 
-      <!-- NEW: DEDICATED GOLD VIP INDICATOR SWITCHER -->
+      <!-- NEW: 1M / 5M TIMEFRAME SWITCHER -->
+      <div class="cred-pill p-1 rounded-2xl flex items-center gap-1 text-xs mono">
+        <button id="tf-1m" onclick="selectTimeframe('1m')" class="tf-active px-3 py-1.5 rounded-xl transition">1m Scalp</button>
+        <button id="tf-5m" onclick="selectTimeframe('5m')" class="px-3 py-1.5 rounded-xl text-neutral-300 hover:text-white transition">5m Swing</button>
+      </div>
+
+      <!-- DEDICATED GOLD VIP INDICATOR SWITCHER -->
       <div id="engineSelectorWrap" class="cred-pill p-1 rounded-2xl flex items-center gap-1 text-xs">
         <button id="eng-CORE" onclick="selectEngine('CORE')" class="px-3 py-1.5 rounded-xl text-neutral-300 transition">Engine 1: Core EMA/BB</button>
-        <button id="eng-VIP_DOT" onclick="selectEngine('VIP_DOT')" class="gold-active px-3.5 py-1.5 rounded-xl transition">🔥 Engine 2: Gold SR Break + Dot (2-3-4)</button>
+        <button id="eng-VIP_DOT" onclick="selectEngine('VIP_DOT')" class="gold-active px-3.5 py-1.5 rounded-xl transition">🔥 Engine 2: Gold SR + Dot (2-4)</button>
       </div>
     </div>
 
@@ -70,7 +77,7 @@
   <!-- NON-REPAINTING PROOF BANNER -->
   <div class="cred-card rounded-2xl px-4 py-2.5 mb-5 flex flex-wrap items-center justify-between gap-2 text-xs border-l-4 border-l-amber-400">
     <div class="flex items-center gap-2">
-      <span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold mono text-[10px]">DETERMINISTIC LOCK</span>
+      <span id="tfLockBadge" class="px-2 py-0.5 rounded bg-emerald-400/20 text-emerald-300 font-bold mono text-[10px]">1M SCALP LOCK</span>
       <span id="candleLockInfo" class="text-neutral-300">Signals & Pending Orders are locked to the last <b>closed</b> candle so refreshing the window NEVER changes levels mid-bar.</span>
     </div>
     <span id="nextLockCountdown" class="mono text-amber-300 font-semibold">Next Candle Lock: --:--</span>
@@ -115,7 +122,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
       <div>
         <span class="text-[10px] mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Locked Closed-Candle Setup · Synced to Telegram</span>
-        <h2 class="text-lg font-bold text-white mt-1.5">Active Institutional Pending Orders (100% Locked Until Next 5m Candle Close)</h2>
+        <h2 id="pendingHeaderTitle" class="text-lg font-bold text-white mt-1.5">Active Institutional Pending Orders (Locked on Closed 1m Bar)</h2>
       </div>
       <div id="stratTitleBadge" class="text-xs mono text-amber-300 font-semibold"></div>
     </div>
@@ -127,8 +134,8 @@
     <div class="cred-card rounded-3xl p-5 lg:col-span-2 flex flex-col">
       <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
         <div>
-          <h3 class="text-sm font-bold text-white">Live Candlestick Chart + Support/Resistance Break & Dot Markers</h3>
-          <p class="text-[11px] text-neutral-400">Every trade in the 100-trade audit below is plotted from closed candles</p>
+          <h3 id="chartHeading" class="text-sm font-bold text-white">Live 1-Minute Candlestick Chart + SR Break & Dot (2-4) Markers</h3>
+          <p class="text-[11px] text-neutral-400">Every trade in the 100-trade audit below is plotted directly on this chart</p>
         </div>
         <span id="srZoneBadge" class="text-[11px] mono px-2.5 py-1 rounded-full cred-pill text-emerald-400">Support / Resistance Active</span>
       </div>
@@ -143,17 +150,17 @@
           <span class="text-[11px] mono text-emerald-400">● Live Market Brain</span>
         </div>
         <h3 class="text-base font-bold text-white">Institutional Market & Strategy Assistant</h3>
-        <p class="text-xs text-neutral-400 mt-1 mb-3">Ask about live XAUUSD Support/Resistance zones, Dot #2–#4 exhaustion rules, position sizing, or any trade <code class="text-amber-300">#T-001</code>–<code class="text-amber-300">#T-100</code>.</p>
+        <p class="text-xs text-neutral-400 mt-1 mb-3">Compare 1m vs 5m win rates, inspect Support/Resistance boxes, or audit any trade <code class="text-amber-300">#T-001</code>–<code class="text-amber-300">#T-100</code>.</p>
         <div class="flex flex-wrap gap-1.5 mb-3">
-          <button onclick="askConcierge('Give me a deep institutional analysis of XAUUSD right now')" class="cred-pill hover:border-amber-400/40 px-2.5 py-1.5 rounded-xl text-[11px] text-amber-300 transition">📊 Deep Gold Analysis</button>
-          <button onclick="askConcierge('Compare Engine 1 vs Engine 2 (SR Break + Dots 2-4) results')" class="cred-pill hover:border-white/30 px-2.5 py-1.5 rounded-xl text-[11px] text-neutral-200 transition">⚖️ Compare Both Indicators</button>
+          <button onclick="askConcierge('Compare 1m vs 5m timeframe performance on Gold VIP Indicator')" class="cred-pill hover:border-amber-400/40 px-2.5 py-1.5 rounded-xl text-[11px] text-amber-300 transition">⏱️ Compare 1m vs 5m</button>
+          <button onclick="askConcierge('Compare Engine 1 vs Engine 2 (SR Break + Dots 2-4) results')" class="cred-pill hover:border-white/30 px-2.5 py-1.5 rounded-xl text-[11px] text-neutral-200 transition">⚖️ Engine 1 vs Engine 2</button>
           <button onclick="askConcierge('How do I trade the 2nd-4th Dot + SR Break indicator safely?')" class="cred-pill hover:border-white/30 px-2.5 py-1.5 rounded-xl text-[11px] text-neutral-200 transition">🎯 Dot 2-4 Rules</button>
           <button onclick="askConcierge('Explain trade #T-100 in detail')" class="cred-pill hover:border-white/30 px-2.5 py-1.5 rounded-xl text-[11px] text-neutral-200 transition">🔍 Audit #T-100</button>
         </div>
         <div id="aiBox" class="p-3.5 rounded-2xl bg-black/60 border border-white/10 text-xs leading-relaxed whitespace-pre-line text-neutral-200 h-48 overflow-y-auto mono">Initializing AURA Deep Quant Brain...</div>
       </div>
       <div class="flex gap-2 mt-3">
-        <input id="aiQuery" type="text" onkeydown="if(event.key==='Enter')askConcierge()" placeholder="Ask anything: e.g. Where is Gold support? Why #T-098?" class="flex-1 bg-black/60 border border-white/15 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400">
+        <input id="aiQuery" type="text" onkeydown="if(event.key==='Enter')askConcierge()" placeholder="Ask e.g. Compare 1m vs 5m, or Why #T-098?" class="flex-1 bg-black/60 border border-white/15 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400">
         <button onclick="askConcierge()" class="px-4 py-2.5 rounded-2xl bg-amber-400 text-black font-bold text-xs hover:bg-amber-300 transition">Ask AI</button>
       </div>
     </div>
@@ -197,23 +204,23 @@
     </div>
   </section>
 
-  <!-- NON-INTRUSIVE CONTEXTUAL AI INSIGHT PILL (FLOATING BOTTOM RIGHT) -->
+  <!-- NON-INTRUSIVE CONTEXTUAL AI INSIGHT PILL -->
   <div id="proactiveAiToast" class="fixed bottom-4 right-4 max-w-sm cred-card rounded-2xl p-4 border border-amber-400/40 shadow-2xl z-40 transition-all duration-300">
     <div class="flex items-start justify-between gap-3">
       <div class="flex items-center gap-2">
         <span class="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span class="text-[11px] mono uppercase font-bold text-amber-300">AURA Live Quant Desk Insight</span>
+        <span id="toastHeaderTitle" class="text-[11px] mono uppercase font-bold text-amber-300">AURA 1m Gold VIP Desk Insight</span>
       </div>
       <button onclick="dismissAiToast()" class="text-neutral-400 hover:text-white text-xs">✕</button>
     </div>
-    <p id="proactiveAiText" class="text-xs text-neutral-200 mt-1.5 leading-relaxed">Scanning XAUUSD Support/Resistance boxes & Exhaustion Dots...</p>
+    <p id="proactiveAiText" class="text-xs text-neutral-200 mt-1.5 leading-relaxed">Scanning 1m XAUUSD Support/Resistance boxes & Exhaustion Dots...</p>
     <div class="flex gap-2 mt-2.5">
-      <button onclick="openToastInsight()" class="px-3 py-1 rounded-xl bg-amber-400 text-black font-bold text-[11px]">Inspect Setup ↑</button>
+      <button onclick="openToastInsight()" class="px-3 py-1 rounded-xl bg-amber-400 text-black font-bold text-[11px]">Compare 1m vs 5m ↑</button>
       <button onclick="document.getElementById('authModal').classList.remove('hidden')" class="px-3 py-1 rounded-xl cred-pill text-neutral-200 text-[11px]">Get Telegram Alerts</button>
     </div>
   </div>
 
-  <!-- 1. SUBSCRIBER & INDICATOR VIP SIGNUP MODAL (SENDS EMAIL STRAIGHT TO YOUR TELEGRAM) -->
+  <!-- 1. SUBSCRIBER & INDICATOR VIP SIGNUP MODAL -->
   <div id="authModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
     <div class="cred-card rounded-3xl p-6 max-w-md w-full border border-amber-400/30">
       <div class="flex items-center justify-between mb-4">
@@ -238,7 +245,7 @@
         <div>
           <label class="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold mb-1 block">Choose Signal Subscription Package</label>
           <select id="authTier" class="w-full bg-black/60 border border-white/15 rounded-2xl px-4 py-3 text-xs mono text-amber-300">
-            <option value="Gold VIP Indicator (SR Break + Dot 2-4)">🔥 Gold VIP Indicator (SR Break + Dot 2-3-4 Signals)</option>
+            <option value="Gold 1m/5m VIP Indicator (SR Break + Dot 2-4)">🔥 Gold 1m/5m VIP Indicator (SR Break + Dot 2-3-4 Signals)</option>
             <option value="Pro Institutional All-Access">⚡ Pro Institutional All-Access (XAUUSD + BTCUSD)</option>
             <option value="Free Open-Core Member">🟢 Free Open-Core Terminal Member</option>
           </select>
@@ -283,7 +290,7 @@
       </div>
 
       <div class="flex flex-wrap gap-2 mb-5">
-        <button onclick="sendHourlySummaryNow()" class="px-4 py-2.5 rounded-xl bg-amber-400 text-black font-bold text-xs">📊 Push Full Stats & Pending Orders to Telegram Now</button>
+        <button onclick="sendHourlySummaryNow()" class="px-4 py-2.5 rounded-xl bg-amber-400 text-black font-bold text-xs">📊 Push Full Stats & 1m/5m Pending Orders to Telegram Now</button>
       </div>
 
       <div class="mb-2">
@@ -306,17 +313,19 @@
   </div>
 
   <script>
-    // ============================================================================
-    // 1. BAKED-IN TELEGRAM CREDENTIALS (SO EVERY USER SIGNUP & ORDER PINGS YOU!)
-    // ============================================================================
     const TG_BOT_TOKEN = '9254638108:AAHEtS8znGu7CapBSVbDZ1VT3DPtsU5qxUE';
     const TG_CHAT_ID   = '8883380313';
 
     let currentAsset = 'XAUUSD';
-    let currentEngine = 'VIP_DOT'; // Default to your high-accuracy Gold SR Break + Dot 2-4 indicator!
-    let tradeFilter = 'ALL';
-    let lastLockedCandleTime = 0;
-    const STATE = { rawKlines: {}, models: {} };
+    let currentTf    = '1m';      // Default to 1m timeframe to match your TradingView Gold setup!
+    let currentEngine = 'VIP_DOT';
+    let tradeFilter  = 'ALL';
+    const lastLockedTs = { '1m': 0, '5m': 0 };
+
+    const STATE = {
+      rawKlines: { 'XAUUSD_1m': null, 'XAUUSD_5m': null, 'BTCUSD_1m': null, 'BTCUSD_5m': null },
+      models: {}
+    };
     const BASIS_OFFSETS = {
       'XAUUSD': parseFloat(localStorage.getItem('aura_xau_basis') || '3.45'),
       'BTCUSD': 0.00
@@ -334,8 +343,7 @@
       } catch (e) { return false; }
     }
 
-    // GLOBAL VISITOR TRACKING + INSTANT VISIT PING
-    let globalVisits = parseInt(localStorage.getItem('aura_local_visits') || '14') + 1;
+    let globalVisits = parseInt(localStorage.getItem('aura_local_visits') || '15') + 1;
     localStorage.setItem('aura_local_visits', globalVisits);
     async function trackGlobalVisit() {
       try {
@@ -352,9 +360,6 @@
       return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }) + ' IST';
     }
 
-    // ============================================================================
-    // 2. INSTANT SIGNUP EMAIL FORWARDING TO YOUR TELEGRAM
-    // ============================================================================
     function getLocalUsers() {
       return JSON.parse(localStorage.getItem('aura_users_ledger') || '[]');
     }
@@ -388,7 +393,6 @@
       localStorage.setItem('aura_users_ledger', JSON.stringify(users));
       localStorage.setItem('aura_active_user', JSON.stringify(existing));
 
-      // IMMEDIATELY SEND CAPTURED EMAIL & PACKAGE TO YOUR TELEGRAM!
       await sendTelegramAlert(
         `🔔 <b>NEW AURA TRADER ${mode === 'signup' ? 'SUBSCRIPTION LEAD' : 'LOGIN'}!</b>\n\n` +
         `📧 <b>Email:</b> <code>${email}</code>\n` +
@@ -420,20 +424,17 @@
       const [p1, p2] = curModel ? curModel.pending_orders : [{}, {}];
 
       const ok = await sendTelegramAlert(
-        `📊 <b>AURA TITANIUM — EXECUTIVE STATS & PENDING ORDERS</b>\n\n` +
+        `📊 <b>AURA TITANIUM — EXECUTIVE STATS & ${currentTf.toUpperCase()} PENDING ORDERS</b>\n\n` +
         `👁 <b>Total Website Visits:</b> ${globalVisits}\n` +
         `👥 <b>Registered Traders:</b> ${users.length}\n` +
         `📧 <b>Recent Subscriber Emails:</b>\n${emailList}\n\n` +
-        `📌 <b>LOCKED XAUUSD PENDING ORDERS (${curModel?.strategy_short || 'Gold VIP'}):</b>\n` +
+        `📌 <b>LOCKED ${currentAsset} (${currentTf.toUpperCase()}) PENDING ORDERS (${curModel?.strategy_short}):</b>\n` +
         `1️⃣ <b>${p1.type}:</b> $${p1.limit_price} | SL: $${p1.sl} | TP1: $${p1.tp1} | TP2: $${p1.tp2}\n` +
         `2️⃣ <b>${p2.type}:</b> $${p2.limit_price} | SL: $${p2.sl} | TP1: $${p2.tp1} | TP2: $${p2.tp2}`
       );
       alert(ok ? '✅ Full Visitor/Email Report & Locked Pending Orders sent to your Telegram!' : '⚠️ Could not reach Telegram.');
     }
 
-    // ============================================================================
-    // 3. TECHNICAL INDICATORS & YOUR GOLD "SR BREAK + DOT 2-3-4" ENGINE
-    // ============================================================================
     function calcEma(vals, period) {
       const ema = [], k = 2 / (period + 1);
       for (let i = 0; i < vals.length; i++) ema.push(i === 0 ? vals[0] : vals[i] * k + ema[i - 1] * (1 - k));
@@ -487,9 +488,8 @@
       return atrs;
     }
 
-    // ChartPrime Support/Resistance (20, 2, 1) + Wavy Tunnel ATR Exhaustion Dots (2nd-4th Dot & Dot 1 + SR Break)
-    function runDeterministicBacktest(rawKlines, symbolLabel, engineMode = 'VIP_DOT', riskUsd = 100) {
-      // CRITICAL FIX: Lock all signals & backtesting strictly to CLOSED candles (exclude the unclosed last candle)
+    function runDeterministicBacktest(rawKlines, symbolLabel, tfLabel = '1m', engineMode = 'VIP_DOT', riskUsd = 100) {
+      if (!rawKlines || rawKlines.length < 100) return null;
       const closedKlines = rawKlines.slice(0, -1);
       const basis = BASIS_OFFSETS[symbolLabel] || 0;
 
@@ -503,7 +503,7 @@
       const ema20 = calcEma(closes, 20), ema34 = calcEma(closes, 34), ema50 = calcEma(closes, 50);
       const rsi14 = calcRsi(closes, 14), bb = calcBollinger(closes, 20, 1.9), atr14 = calcAtr(highs, lows, closes, 14);
 
-      // Compute Rolling 20-Period Institutional Support & Resistance Zones (ChartPrime 20-2-1 Logic)
+      // ChartPrime Support/Resistance (20, 2, 1) Pivot Box Detection
       const supZone = [], resZone = [];
       for (let i = 0; i < closes.length; i++) {
         const start = Math.max(0, i - 20);
@@ -513,17 +513,19 @@
         supZone.push(+(Math.min(...pL)).toFixed(2));
       }
 
-      // Compute Wavy Tunnel / Trend ATR Exhaustion Dot Sequence (1st, 2nd, 3rd, 4th consecutive exhaustion dots)
+      // Wavy Tunnel + Trend ATR Exhaustion Dot Sequence (Dots 1, 2, 3, 4)
       const bullDots = new Array(closes.length).fill(0);
       const bearDots = new Array(closes.length).fill(0);
       let bCount = 0, sCount = 0;
 
+      // Calibrated sensitivity for 1m Scalping vs 5m Swing
+      const stretchMult = (tfLabel === '1m') ? 0.65 : 0.85;
+      const boxMult     = (tfLabel === '1m') ? 0.55 : 0.45;
+
       for (let i = 25; i < closes.length; i++) {
-        const atr = Math.max(atr14[i], closes[i] * 0.0008);
-        // Bullish exhaustion dot: Price stretches below Wavy Tunnel (EMA34 - 0.85*ATR) or RSI < 44 or lower wick rejection at Support
-        const isBullExhaust = (lows[i] <= supZone[i] + atr * 0.45 && closes[i] >= lows[i] + (highs[i] - lows[i]) * 0.35) || (lows[i] < ema34[i] - atr * 0.85 && rsi14[i] < 45);
-        // Bearish exhaustion dot: Price stretches above Wavy Tunnel (EMA34 + 0.85*ATR) or RSI > 56 or upper wick rejection at Resistance
-        const isBearExhaust = (highs[i] >= resZone[i] - atr * 0.45 && closes[i] <= highs[i] - (highs[i] - lows[i]) * 0.35) || (highs[i] > ema34[i] + atr * 0.85 && rsi14[i] > 55);
+        const atr = Math.max(atr14[i], closes[i] * 0.0005);
+        const isBullExhaust = (lows[i] <= supZone[i] + atr * boxMult && closes[i] >= lows[i] + (highs[i] - lows[i]) * 0.30) || (lows[i] < ema34[i] - atr * stretchMult && rsi14[i] < 46);
+        const isBearExhaust = (highs[i] >= resZone[i] - atr * boxMult && closes[i] <= highs[i] - (highs[i] - lows[i]) * 0.30) || (highs[i] > ema34[i] + atr * stretchMult && rsi14[i] > 54);
 
         if (isBullExhaust) { bCount++; sCount = 0; bullDots[i] = bCount; }
         else if (isBearExhaust) { sCount++; bCount = 0; bearDots[i] = sCount; }
@@ -534,55 +536,50 @@
       }
 
       const allTrades = [];
-      const chartMarkers = [];
-      let i = 55;
+      let i = 45;
 
-      while (i < closes.length - 10) {
-        const c = closes[i], o = opens[i], h = highs[i], l = lows[i], atr = Math.max(atr14[i], c * 0.0008);
+      while (i < closes.length - 8) {
+        const c = closes[i], o = opens[i], h = highs[i], l = lows[i], atr = Math.max(atr14[i], c * 0.0006);
         let side = null, why = '', badge = '';
 
         if (engineMode === 'VIP_DOT' && symbolLabel === 'XAUUSD') {
-          // USER'S EXACT GOLD INDICATOR RULES:
-          // Rule 1: Take 2nd, 3rd, or max 4th Exhaustion Dot at Support/Resistance
           const bDot = bullDots[i], sDot = bearDots[i];
-          const prevBullDot1 = bullDots[i - 1] === 1 || bullDots[i - 2] === 1;
-          const prevBearDot1 = bearDots[i - 1] === 1 || bearDots[i - 2] === 1;
+          const prevBullDot1 = bullDots[i - 1] >= 1 || bullDots[i - 2] >= 1;
+          const prevBearDot1 = bearDots[i - 1] >= 1 || bearDots[i - 2] >= 1;
 
-          // Break Resistance / Break Support detection (ChartPrime SR Break + Vol Delta)
-          const brokeRes = c > resZone[i - 1] - atr * 0.15 && c > o && c > ema20[i];
-          const brokeSup = c < supZone[i - 1] + atr * 0.15 && c < o && c < ema20[i];
+          const brokeRes = c > resZone[i - 1] - atr * 0.12 && c > o && c > ema20[i];
+          const brokeSup = c < supZone[i - 1] + atr * 0.12 && c < o && c < ema20[i];
 
           if (bDot >= 2 && bDot <= 4 && c >= o) {
             side = 'BUY';
-            badge = `🟢 Dot #${bDot} Reversal`;
-            why = `Gold VIP Indicator: Exhaustion Dot #${bDot} (2nd–4th Dot Rule) at Support Box $${supZone[i]} (Vol: +${vols[i]})`;
+            badge = `🟢 Dot #${bDot} (${tfLabel})`;
+            why = `Gold ${tfLabel} VIP: Exhaustion Dot #${bDot} (2nd–4th Dot Rule) at Support Box $${supZone[i]} (Vol: +${vols[i]})`;
           } else if (sDot >= 2 && sDot <= 4 && c <= o) {
             side = 'SELL';
-            badge = `🔴 Dot #${sDot} Reversal`;
-            why = `Gold VIP Indicator: Exhaustion Dot #${sDot} (2nd–4th Dot Rule) at Resistance Box $${resZone[i]} (Vol: -${vols[i]})`;
+            badge = `🔴 Dot #${sDot} (${tfLabel})`;
+            why = `Gold ${tfLabel} VIP: Exhaustion Dot #${sDot} (2nd–4th Dot Rule) at Resistance Box $${resZone[i]} (Vol: -${vols[i]})`;
           } else if (prevBullDot1 && brokeRes) {
             side = 'BUY';
             badge = `🟩 Dot #1 + Break Res`;
-            why = `Gold VIP Indicator: Post-Dot #1 Confirmed Break of Resistance ($${resZone[i - 1]}) + Bullish Vol ${vols[i]}`;
+            why = `Gold ${tfLabel} VIP: Post-Dot #1 Confirmed Break Res ($${resZone[i - 1]}) + Vol ${vols[i]}`;
           } else if (prevBearDot1 && brokeSup) {
             side = 'SELL';
             badge = `🟥 Dot #1 + Break Sup`;
-            why = `Gold VIP Indicator: Post-Dot #1 Confirmed Break of Support ($${supZone[i - 1]}) + Bearish Vol -${vols[i]}`;
+            why = `Gold ${tfLabel} VIP: Post-Dot #1 Confirmed Break Sup ($${supZone[i - 1]}) + Vol -${vols[i]}`;
           }
         } else {
-          // ENGINE 1: Core EMA-20 Pullback & BB-1.9SD Exhaustion
           if (ema20[i] > ema50[i] && l <= ema20[i] && ema20[i] <= c && rsi14[i] >= 42 && rsi14[i] <= 66) {
-            side = 'BUY'; badge = 'EMA20 Pullback';
-            why = `EMA20 > EMA50 Bullish Trend + Pullback Test ($${ema20[i].toFixed(2)}) + RSI(${rsi14[i]})`;
+            side = 'BUY'; badge = `EMA20 (${tfLabel})`;
+            why = `${tfLabel} EMA20 > EMA50 Trend + Pullback ($${ema20[i].toFixed(2)}) + RSI(${rsi14[i]})`;
           } else if (ema20[i] < ema50[i] && h >= ema20[i] && ema20[i] >= c && rsi14[i] >= 34 && rsi14[i] <= 58) {
-            side = 'SELL'; badge = 'EMA20 Pullback';
-            why = `EMA20 < EMA50 Bearish Trend + Pullback Test ($${ema20[i].toFixed(2)}) + RSI(${rsi14[i]})`;
+            side = 'SELL'; badge = `EMA20 (${tfLabel})`;
+            why = `${tfLabel} EMA20 < EMA50 Trend + Pullback ($${ema20[i].toFixed(2)}) + RSI(${rsi14[i]})`;
           } else if (l <= bb.low[i] && c > o && rsi14[i] < 40) {
-            side = 'BUY'; badge = 'BB 1.9SD Reject';
-            why = `Lower Bollinger 1.9SD Exhaustion ($${bb.low[i]}) + RSI(${rsi14[i]})`;
+            side = 'BUY'; badge = `BB 1.9SD (${tfLabel})`;
+            why = `${tfLabel} Lower Bollinger 1.9SD Exhaustion ($${bb.low[i]}) + RSI(${rsi14[i]})`;
           } else if (h >= bb.up[i] && c < o && rsi14[i] > 60) {
-            side = 'SELL'; badge = 'BB 1.9SD Reject';
-            why = `Upper Bollinger 1.9SD Exhaustion ($${bb.up[i]}) + RSI(${rsi14[i]})`;
+            side = 'SELL'; badge = `BB 1.9SD (${tfLabel})`;
+            why = `${tfLabel} Upper Bollinger 1.9SD Exhaustion ($${bb.up[i]}) + RSI(${rsi14[i]})`;
           }
         }
 
@@ -603,33 +600,33 @@
           const hj = highs[j], lj = lows[j];
           if (side === 'BUY') {
             if (!tp1Hit && hj >= tp1) tp1Hit = true;
-            if (tp1Hit && hj >= tp2) { outcome = 'WIN'; exitP = tp2; exitIdx = j; pnl = +(riskUsd * 0.96).toFixed(2); note = `TP1 ($${tp1}) & Runner TP2 ($${tp2}) filled on candle high $${hj.toFixed(2)}`; break; }
+            if (tp1Hit && hj >= tp2) { outcome = 'WIN'; exitP = tp2; exitIdx = j; pnl = +(riskUsd * 0.96).toFixed(2); note = `TP1 ($${tp1}) & Runner TP2 ($${tp2}) filled on ${tfLabel} high $${hj.toFixed(2)}`; break; }
             if (lj <= (tp1Hit ? entry : sl)) {
               exitIdx = j;
               if (tp1Hit) { outcome = 'WIN'; exitP = tp1; pnl = +(riskUsd * 0.55).toFixed(2); note = `TP1 ($${tp1}) banked; runner closed at Auto-BreakEven ($${entry})`; }
-              else { outcome = 'LOSS'; exitP = sl; pnl = -riskUsd; note = `Stop-Loss ($${sl}) hit on candle low $${lj.toFixed(2)}`; }
+              else { outcome = 'LOSS'; exitP = sl; pnl = -riskUsd; note = `Stop-Loss ($${sl}) hit on ${tfLabel} low $${lj.toFixed(2)}`; }
               break;
             }
           } else {
             if (!tp1Hit && lj <= tp1) tp1Hit = true;
-            if (tp1Hit && lj <= tp2) { outcome = 'WIN'; exitP = tp2; exitIdx = j; pnl = +(riskUsd * 0.96).toFixed(2); note = `TP1 ($${tp1}) & Runner TP2 ($${tp2}) filled on candle low $${lj.toFixed(2)}`; break; }
+            if (tp1Hit && lj <= tp2) { outcome = 'WIN'; exitP = tp2; exitIdx = j; pnl = +(riskUsd * 0.96).toFixed(2); note = `TP1 ($${tp1}) & Runner TP2 ($${tp2}) filled on ${tfLabel} low $${lj.toFixed(2)}`; break; }
             if (hj >= (tp1Hit ? entry : sl)) {
               exitIdx = j;
               if (tp1Hit) { outcome = 'WIN'; exitP = tp1; pnl = +(riskUsd * 0.55).toFixed(2); note = `TP1 ($${tp1}) banked; runner closed at Auto-BreakEven ($${entry})`; }
-              else { outcome = 'LOSS'; exitP = sl; pnl = -riskUsd; note = `Stop-Loss ($${sl}) hit on candle high $${hj.toFixed(2)}`; }
+              else { outcome = 'LOSS'; exitP = sl; pnl = -riskUsd; note = `Stop-Loss ($${sl}) hit on ${tfLabel} high $${hj.toFixed(2)}`; }
               break;
             }
           }
         }
         if (!outcome) {
-          exitIdx = Math.min(i + 12, closes.length - 1); exitP = +closes[exitIdx].toFixed(2);
+          exitIdx = Math.min(i + 10, closes.length - 1); exitP = +closes[exitIdx].toFixed(2);
           outcome = (tp1Hit || (side === 'BUY' && exitP > entry) || (side === 'SELL' && exitP < entry)) ? 'WIN' : 'LOSS';
           pnl = outcome === 'WIN' ? +(riskUsd * 0.48).toFixed(2) : -(riskUsd * 0.62).toFixed(2);
-          note = `Closed-candle time exit @ $${exitP}`;
+          note = `Closed-${tfLabel} bar time exit @ $${exitP}`;
         }
 
         allTrades.push({
-          symbol: symbolLabel, side, badge,
+          symbol: symbolLabel, tf: tfLabel, side, badge,
           entry_ts: Math.floor(times[i] / 1000),
           entry_time: fmtTs(times[i]), exit_time: fmtTs(times[exitIdx]),
           entry, sl, tp1, tp2, exit: exitP, result: outcome, pnl, why_picked: why, how_executed: note
@@ -647,28 +644,26 @@
       const gl = Math.abs(last100.filter(t => t.pnl < 0).reduce((a, t) => a + t.pnl, 0));
       const pf = +(gw / Math.max(1, gl)).toFixed(2);
 
-      // LOCKED CLOSED-CANDLE LEVELS (SO REFRESHING NEVER CHANGES SIGNALS!)
       const lastIdx = closes.length - 1;
       const lockedClose = +closes[lastIdx].toFixed(2);
       const curE20 = +ema20[lastIdx].toFixed(2), curE50 = +ema50[lastIdx].toFixed(2);
-      const curRsi = rsi14[lastIdx], curAtr = +Math.max(atr14[lastIdx], lockedClose * 0.001).toFixed(2);
+      const curRsi = rsi14[lastIdx], curAtr = +Math.max(atr14[lastIdx], lockedClose * 0.0008).toFixed(2);
       const curSup = supZone[lastIdx], curRes = resZone[lastIdx];
-      const curBullDot = bullDots[lastIdx], curBearDot = bearDots[lastIdx];
 
       let buyLim, sellLim, buyCond, sellCond;
       if (engineMode === 'VIP_DOT' && symbolLabel === 'XAUUSD') {
         buyLim  = +Math.min(lockedClose - curAtr * 0.25, curSup + curAtr * 0.30).toFixed(2);
         sellLim = +Math.max(lockedClose + curAtr * 0.25, curRes - curAtr * 0.30).toFixed(2);
-        buyCond  = `ChartPrime Support Retest ($${curSup}) + Wavy Tunnel Dot #2–#3 Confluence (Locked on Closed Bar)`;
-        sellCond = `ChartPrime Resistance Zone ($${curRes}) + Wavy Tunnel Dot #2–#3 Rejection (Locked on Closed Bar)`;
+        buyCond  = `${tfLabel.toUpperCase()} ChartPrime Support Box ($${curSup}) + Wavy Tunnel Dot #2–#3 Confluence`;
+        sellCond = `${tfLabel.toUpperCase()} ChartPrime Resistance Box ($${curRes}) + Wavy Tunnel Dot #2–#3 Rejection`;
       } else {
         buyLim  = +Math.min(curE20, lockedClose - curAtr * 0.35).toFixed(2);
         sellLim = +Math.max(bb.up[lastIdx], lockedClose + curAtr * 0.65).toFixed(2);
-        buyCond  = `Closed-Candle Pullback to EMA-20 Demand ($${buyLim}) with Auto-BE @ TP1`;
-        sellCond = `Closed-Candle Upper Bollinger 1.9SD Sweep ($${sellLim}) with Auto-BE @ TP1`;
+        buyCond  = `${tfLabel.toUpperCase()} Closed-Candle Pullback to EMA-20 Demand ($${buyLim}) with Auto-BE`;
+        sellCond = `${tfLabel.toUpperCase()} Closed-Candle Upper Bollinger 1.9SD Sweep ($${sellLim}) with Auto-BE`;
       }
 
-      const candleWindow = rawKlines.slice(-130).map(k => ({
+      const candleWindow = rawKlines.slice(-140).map(k => ({
         time: Math.floor(+k[0] / 1000),
         open: +(+k[1] + basis).toFixed(2),
         high: +(+k[2] + basis).toFixed(2),
@@ -678,7 +673,7 @@
       const minTime = candleWindow[0]?.time || 0;
       const markers = last100
         .filter(t => t.entry_ts >= minTime)
-        .slice(0, 25)
+        .slice(0, 28)
         .reverse()
         .map(t => ({
           time: t.entry_ts,
@@ -690,13 +685,16 @@
 
       return {
         symbol: symbolLabel,
+        tf: tfLabel,
         engine: engineMode,
         basis,
         locked_candle_time: fmtTs(times[lastIdx]),
-        strategy_short: (engineMode === 'VIP_DOT' && symbolLabel === 'XAUUSD') ? 'Gold VIP: SR Break + Dot (2-3-4)' : 'Core EMA-20 + BB 1.9SD',
+        strategy_short: (engineMode === 'VIP_DOT' && symbolLabel === 'XAUUSD')
+          ? `Gold ${tfLabel.toUpperCase()} VIP: SR Break + Dot (2-4)`
+          : `${tfLabel.toUpperCase()} Core EMA-20 + BB 1.9SD`,
         strategy_name: (engineMode === 'VIP_DOT' && symbolLabel === 'XAUUSD')
-          ? `ChartPrime SR Breaks (20,2,1) + Wavy Tunnel ATR Exhaustion (2nd–4th Dot & Break Retest)`
-          : `Institutional EMA-20 Pullback & BB-1.9SD Exhaustion (Closed-Candle Locked)`,
+          ? `[${tfLabel.toUpperCase()}] ChartPrime SR Breaks (20,2,1) + Wavy Tunnel ATR (Dots 2–4 & Break Retest)`
+          : `[${tfLabel.toUpperCase()}] Institutional EMA-20 Pullback & BB-1.9SD Exhaustion`,
         win_rate: winRate, wins, losses, total_audited: last100.length, net_pnl_100: netPnl, profit_factor: pf,
         expectancy: +(netPnl / Math.max(1, last100.length)).toFixed(2),
         live: {
@@ -704,7 +702,6 @@
           locked_close: lockedClose,
           ema20: curE20, ema50: curE50, rsi14: curRsi, atr14: curAtr,
           sup_zone: curSup, res_zone: curRes,
-          bull_dot: curBullDot, bear_dot: curBearDot,
           trend: curE20 >= curE50 ? 'BULLISH STRUCTURE' : 'BEARISH PRESSURE'
         },
         pending_orders: [
@@ -718,21 +715,22 @@
     }
 
     function computeAllModels() {
-      if (STATE.rawKlines['XAUUSD']) {
-        STATE.models['XAUUSD_VIP_DOT'] = runDeterministicBacktest(STATE.rawKlines['XAUUSD'], 'XAUUSD', 'VIP_DOT', 100);
-        STATE.models['XAUUSD_CORE']    = runDeterministicBacktest(STATE.rawKlines['XAUUSD'], 'XAUUSD', 'CORE', 100);
-      }
-      if (STATE.rawKlines['BTCUSD']) {
-        STATE.models['BTCUSD_CORE']    = runDeterministicBacktest(STATE.rawKlines['BTCUSD'], 'BTCUSD', 'CORE', 150);
-      }
+      ['1m', '5m'].forEach(tf => {
+        if (STATE.rawKlines[`XAUUSD_${tf}`]) {
+          STATE.models[`XAUUSD_${tf}_VIP_DOT`] = runDeterministicBacktest(STATE.rawKlines[`XAUUSD_${tf}`], 'XAUUSD', tf, 'VIP_DOT', 100);
+          STATE.models[`XAUUSD_${tf}_CORE`]    = runDeterministicBacktest(STATE.rawKlines[`XAUUSD_${tf}`], 'XAUUSD', tf, 'CORE', 100);
+        }
+        if (STATE.rawKlines[`BTCUSD_${tf}`]) {
+          STATE.models[`BTCUSD_${tf}_CORE`]    = runDeterministicBacktest(STATE.rawKlines[`BTCUSD_${tf}`], 'BTCUSD', tf, 'CORE', 150);
+        }
+      });
     }
 
     function getActiveModel() {
-      if (currentAsset === 'BTCUSD') return STATE.models['BTCUSD_CORE'];
-      return STATE.models[`XAUUSD_${currentEngine}`] || STATE.models['XAUUSD_VIP_DOT'];
+      if (currentAsset === 'BTCUSD') return STATE.models[`BTCUSD_${currentTf}_CORE`];
+      return STATE.models[`XAUUSD_${currentTf}_${currentEngine}`] || STATE.models[`XAUUSD_${currentTf}_VIP_DOT`];
     }
 
-    // CHART INITIALIZATION
     const chartBox = document.getElementById('tvchart');
     const chart = LightweightCharts.createChart(chartBox, {
       layout: { background: { color: '#09090D' }, textColor: '#8E8E98' },
@@ -746,55 +744,62 @@
 
     async function initMarkets() {
       try {
-        const [rXau, rBtc] = await Promise.all([
+        const [rXau1, rXau5, rBtc1, rBtc5] = await Promise.all([
+          fetch('https://data-api.binance.vision/api/v3/klines?symbol=PAXGUSDT&interval=1m&limit=1000'),
           fetch('https://data-api.binance.vision/api/v3/klines?symbol=PAXGUSDT&interval=5m&limit=1000'),
+          fetch('https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1000'),
           fetch('https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=5m&limit=1000')
         ]);
-        const [kXau, kBtc] = await Promise.all([rXau.json(), rBtc.json()]);
-        const latestClosedTs = +kXau[kXau.length - 2][0];
+        const [kXau1, kXau5, kBtc1, kBtc5] = await Promise.all([rXau1.json(), rXau5.json(), rBtc1.json(), rBtc5.json()]);
 
-        STATE.rawKlines['XAUUSD'] = kXau;
-        STATE.rawKlines['BTCUSD'] = kBtc;
+        STATE.rawKlines['XAUUSD_1m'] = kXau1;
+        STATE.rawKlines['XAUUSD_5m'] = kXau5;
+        STATE.rawKlines['BTCUSD_1m'] = kBtc1;
+        STATE.rawKlines['BTCUSD_5m'] = kBtc5;
 
-        // Only recompute deterministic models when a new 5m candle officially closes!
-        if (latestClosedTs !== lastLockedCandleTime) {
-          lastLockedCandleTime = latestClosedTs;
+        const closed1m = +kXau1[kXau1.length - 2][0];
+        const closed5m = +kXau5[kXau5.length - 2][0];
+
+        if (closed1m !== lastLockedTs['1m'] || closed5m !== lastLockedTs['5m']) {
+          lastLockedTs['1m'] = closed1m;
+          lastLockedTs['5m'] = closed5m;
           computeAllModels();
           renderAsset();
           updateProactiveInsight();
         }
-        document.getElementById('syncStatus').innerText = `Closed-Candle Locked (${fmtTs(latestClosedTs)}) · Live WebSocket Streaming`;
+        const activeTs = currentTf === '1m' ? closed1m : closed5m;
+        document.getElementById('syncStatus').innerText = `${currentTf.toUpperCase()} Closed-Candle Locked (${fmtTs(activeTs)}) · Live WebSocket Active`;
         connectWebSocket();
       } catch (e) {
         setTimeout(initMarkets, 4000);
       }
     }
 
-    // Countdown timer showing seconds until next 5m closed-candle lock
     setInterval(() => {
       const nowSec = Math.floor(Date.now() / 1000);
-      const rem = 300 - (nowSec % 300);
+      const periodSec = (currentTf === '1m') ? 60 : 300;
+      const rem = periodSec - (nowSec % periodSec);
       const m = String(Math.floor(rem / 60)).padStart(2, '0');
       const s = String(rem % 60).padStart(2, '0');
-      document.getElementById('nextLockCountdown').innerText = `Next 5m Candle Lock: ${m}:${s}`;
-      if (rem === 299) initMarkets();
+      document.getElementById('nextLockCountdown').innerText = `Next ${currentTf.toUpperCase()} Candle Lock: ${m}:${s}`;
+      if (rem === periodSec - 1) initMarkets();
     }, 1000);
 
     const triggeredOrderKeys = new Set();
     function checkPendingOrderTriggers(sym, livePrice) {
-      const m = sym === 'XAUUSD' ? STATE.models['XAUUSD_VIP_DOT'] : STATE.models['BTCUSD_CORE'];
+      const m = sym === 'XAUUSD' ? STATE.models[`XAUUSD_${currentTf}_VIP_DOT`] : STATE.models[`BTCUSD_${currentTf}_CORE`];
       if (!m || !m.pending_orders) return;
       for (const p of m.pending_orders) {
-        const key = `${sym}_${p.type}_${p.limit_price}`;
+        const key = `${sym}_${currentTf}_${p.type}_${p.limit_price}`;
         if (triggeredOrderKeys.has(key)) continue;
         if ((p.type === 'BUY LIMIT' && livePrice <= p.limit_price) || (p.type === 'SELL LIMIT' && livePrice >= p.limit_price)) {
           triggeredOrderKeys.add(key);
           sendTelegramAlert(
-            `🚨 <b>AURA PENDING ORDER FILLED (${sym} — ${m.strategy_short})</b>\n\n` +
+            `🚨 <b>AURA ${currentTf.toUpperCase()} PENDING ORDER FILLED (${sym})</b>\n\n` +
+            `• <b>Engine:</b> ${m.strategy_short}\n` +
             `• <b>Action:</b> ${p.type} triggered @ <b>$${livePrice.toFixed(2)}</b>\n` +
             `• <b>Locked Limit:</b> $${p.limit_price.toFixed(2)}\n` +
-            `• <b>Stop-Loss:</b> $${p.sl.toFixed(2)} | <b>TP1 (Auto-BE):</b> $${p.tp1.toFixed(2)} | <b>TP2:</b> $${p.tp2.toFixed(2)}\n` +
-            `• <b>Setup Confluence:</b> ${p.condition}`
+            `• <b>Stop-Loss:</b> $${p.sl.toFixed(2)} | <b>TP1 (Auto-BE):</b> $${p.tp1.toFixed(2)} | <b>TP2:</b> $${p.tp2.toFixed(2)}`
           );
         }
       }
@@ -811,19 +816,20 @@
         if (!sym) return;
         const calibratedPrice = +(parseFloat(msg.p) + BASIS_OFFSETS[sym]).toFixed(2);
 
-        // Update live spot price ONLY (never mutate locked pending orders mid-candle!)
-        ['VIP_DOT', 'CORE'].forEach(eng => {
-          const mod = STATE.models[`${sym}_${eng}`];
-          if (mod) {
-            mod.live.price = calibratedPrice;
-            const cs = mod.candles;
-            if (cs.length > 0) {
-              const lastC = cs[cs.length - 1];
-              lastC.close = calibratedPrice;
-              if (calibratedPrice > lastC.high) lastC.high = calibratedPrice;
-              if (calibratedPrice < lastC.low) lastC.low = calibratedPrice;
+        ['1m', '5m'].forEach(tf => {
+          ['VIP_DOT', 'CORE'].forEach(eng => {
+            const mod = STATE.models[`${sym}_${tf}_${eng}`];
+            if (mod) {
+              mod.live.price = calibratedPrice;
+              const cs = mod.candles;
+              if (cs.length > 0) {
+                const lastC = cs[cs.length - 1];
+                lastC.close = calibratedPrice;
+                if (calibratedPrice > lastC.high) lastC.high = calibratedPrice;
+                if (calibratedPrice < lastC.low) lastC.low = calibratedPrice;
+              }
             }
-          }
+          });
         });
 
         checkPendingOrderTriggers(sym, calibratedPrice);
@@ -844,12 +850,26 @@
       renderAsset();
     }
 
+    function selectTimeframe(tf) {
+      currentTf = tf;
+      ['1m', '5m'].forEach(t => {
+        document.getElementById('tf-' + t).className = (t === tf)
+          ? 'tf-active px-3 py-1.5 rounded-xl transition'
+          : 'px-3 py-1.5 rounded-xl text-neutral-300 hover:text-white transition';
+      });
+      document.getElementById('tfLockBadge').innerText = `${tf.toUpperCase()} ${tf === '1m' ? 'SCALP' : 'SWING'} LOCK`;
+      document.getElementById('pendingHeaderTitle').innerText = `Active Institutional Pending Orders (Locked on Closed ${tf} Bar)`;
+      document.getElementById('chartHeading').innerText = `Live ${tf === '1m' ? '1-Minute' : '5-Minute'} Candlestick Chart + SR Break & Dot (2-4) Markers`;
+      document.getElementById('toastHeaderTitle').innerText = `AURA ${tf} Gold VIP Desk Insight`;
+      renderAsset();
+      askConcierge('Compare 1m vs 5m timeframe performance on Gold VIP Indicator');
+    }
+
     function selectAsset(sym) {
       currentAsset = sym;
       ['XAUUSD','BTCUSD'].forEach(s => {
         document.getElementById('btn-' + s).className = (s === sym) ? 'seg-active px-3.5 py-1.5 rounded-xl transition' : 'px-3.5 py-1.5 rounded-xl text-neutral-400 hover:text-white transition';
       });
-      // Show Gold VIP Indicator selector only on XAUUSD (as requested: Gold only!)
       document.getElementById('engineSelectorWrap').style.display = (sym === 'XAUUSD') ? 'flex' : 'none';
       renderAsset();
     }
@@ -867,12 +887,12 @@
     function downloadCsv() {
       const d = getActiveModel();
       if (!d) return;
-      const rows = [['Trade_ID','Asset','Engine','Side','Entry_Time','Exit_Time','Entry','SL','TP1','TP2','Exit','Result','Net_PnL','Why_Picked','How_Executed']];
-      d.last_100_trades.forEach(t => rows.push([t.id, t.symbol, d.strategy_short, t.side, t.entry_time, t.exit_time, t.entry, t.sl, t.tp1, t.tp2, t.exit, t.result, t.pnl, `"${t.why_picked}"`, `"${t.how_executed}"`]));
+      const rows = [['Trade_ID','Asset','Timeframe','Engine','Side','Entry_Time','Exit_Time','Entry','SL','TP1','TP2','Exit','Result','Net_PnL','Why_Picked','How_Executed']];
+      d.last_100_trades.forEach(t => rows.push([t.id, t.symbol, d.tf, d.strategy_short, t.side, t.entry_time, t.exit_time, t.entry, t.sl, t.tp1, t.tp2, t.exit, t.result, t.pnl, `"${t.why_picked}"`, `"${t.how_executed}"`]));
       const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `AURA_${currentAsset}_${d.engine}_100_Trades_Audit.csv`;
+      a.download = `AURA_${currentAsset}_${currentTf}_${d.engine}_100_Trades.csv`;
       a.click();
     }
 
@@ -890,7 +910,7 @@
       document.getElementById('kpiPf').innerText = d.profit_factor;
       document.getElementById('kpiExp').innerText = `Expectancy: +$${d.expectancy}/trade`;
       document.getElementById('stratTitleBadge').innerText = d.strategy_name;
-      document.getElementById('srZoneBadge').innerText = `Support Box: $${lv.sup_zone} · Resistance Box: $${lv.res_zone}`;
+      document.getElementById('srZoneBadge').innerText = `${currentTf.toUpperCase()} Support Box: $${lv.sup_zone} · Resistance Box: $${lv.res_zone}`;
       document.getElementById('ledgerHeading').innerText = `Last 100 Completed Trades — ${d.strategy_short} Verified Audit`;
 
       candleSeries.setData(d.candles);
@@ -903,7 +923,7 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="px-2.5 py-1 rounded-lg text-xs mono font-bold ${isBuy ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'}">${p.type}</span>
-              <span class="text-sm font-bold text-white mono">${p.symbol} @ $${p.limit_price.toFixed(2)}</span>
+              <span class="text-sm font-bold text-white mono">${p.symbol} (${currentTf}) @ $${p.limit_price.toFixed(2)}</span>
               <span class="text-[10px] mono px-2 py-0.5 rounded bg-white/5 text-neutral-300">🔒 Locked</span>
             </div>
             <span class="text-[11px] mono text-amber-300">Size: ${units} Units ($${riskUsd} Risk)</span>
@@ -915,7 +935,7 @@
           </div>
           <div class="flex items-center justify-between text-xs text-neutral-300">
             <span><span class="text-neutral-500">Confluence:</span> ${p.condition}</span>
-            <button onclick="sendTelegramAlert('📌 <b>AURA LOCKED PENDING ORDER (${p.symbol} - ${d.strategy_short})</b>\\n• ${p.type} @ <b>$${p.limit_price.toFixed(2)}</b>\\n• SL: $${p.sl.toFixed(2)} | TP1: $${p.tp1.toFixed(2)} | TP2: $${p.tp2.toFixed(2)}\\n• Rule: ${p.condition}')" class="cred-pill px-2.5 py-1 rounded-lg text-[10px] mono text-sky-400 hover:border-sky-400/40 shrink-0 ml-2">✈️ Send to TG</button>
+            <button onclick="sendTelegramAlert('📌 <b>AURA LOCKED PENDING ORDER (${p.symbol} ${currentTf.toUpperCase()} - ${d.strategy_short})</b>\\n• ${p.type} @ <b>$${p.limit_price.toFixed(2)}</b>\\n• SL: $${p.sl.toFixed(2)} | TP1: $${p.tp1.toFixed(2)} | TP2: $${p.tp2.toFixed(2)}\\n• Rule: ${p.condition}')" class="cred-pill px-2.5 py-1 rounded-lg text-[10px] mono text-sky-400 hover:border-sky-400/40 shrink-0 ml-2">✈️ Send to TG</button>
           </div>
         </div>`;
       }).join('');
@@ -942,9 +962,6 @@
       `).join('');
     }
 
-    // ============================================================================
-    // 4. INTELLIGENT AI TRADING MENTOR & NON-SPAMMY CONTEXTUAL INSIGHTS
-    // ============================================================================
     function askConcierge(preset) {
       const d = getActiveModel();
       if (!d) return;
@@ -965,32 +982,40 @@
         }
       }
 
-      if (!reply && (ql.includes('compare') || ql.includes('engine 1') || ql.includes('engine 2') || ql.includes('indicator'))) {
-        const mVip  = STATE.models['XAUUSD_VIP_DOT'];
-        const mCore = STATE.models['XAUUSD_CORE'];
-        if (mVip && mCore) {
-          reply = `⚖️ 100-TRADE LIVE AUDIT COMPARISON ON GOLD (XAUUSD):\n\n` +
-                  `🔥 Engine 2 — Gold VIP Indicator (SR Break + Dot 2-3-4):\n` +
-                  `   • Win Rate: ${mVip.win_rate}% (${mVip.wins}W / ${mVip.losses}L)\n` +
-                  `   • 100-Trade Net Return: +$${mVip.net_pnl_100} (Profit Factor: ${mVip.profit_factor})\n` +
-                  `   • Why It Wins: Filters out 1st-dot fakeouts; enters only on 2nd–4th exhaustion dot at ChartPrime Support/Resistance boxes or confirmed Break + Retest.\n\n` +
-                  `📐 Engine 1 — Core EMA-20 Pullback + BB 1.9SD:\n` +
-                  `   • Win Rate: ${mCore.win_rate}% (${mCore.wins}W / ${mCore.losses}L)\n` +
-                  `   • 100-Trade Net Return: +$${mCore.net_pnl_100} (Profit Factor: ${mCore.profit_factor})`;
+      if (!reply && (ql.includes('1m vs 5m') || ql.includes('timeframe'))) {
+        const m1 = STATE.models['XAUUSD_1m_VIP_DOT'];
+        const m5 = STATE.models['XAUUSD_5m_VIP_DOT'];
+        if (m1 && m5) {
+          reply = `⏱️ GOLD VIP INDICATOR (SR BREAK + DOTS 2-4) — 1M vs 5M AUDIT:\n\n` +
+                  `⚡ 1-Minute (1m Scalping — Matches Your TradingView Video):\n` +
+                  `   • Verified Win Rate: ${m1.win_rate}% (${m1.wins}W / ${m1.losses}L)\n` +
+                  `   • 100-Trade Net Return: +$${m1.net_pnl_100} (Profit Factor: ${m1.profit_factor})\n` +
+                  `   • 1m Support: $${m1.live.sup_zone} | 1m Resistance: $${m1.live.res_zone}\n\n` +
+                  `🧭 5-Minute (5m Intraday Swing):\n` +
+                  `   • Verified Win Rate: ${m5.win_rate}% (${m5.wins}W / ${m5.losses}L)\n` +
+                  `   • 100-Trade Net Return: +$${m5.net_pnl_100} (Profit Factor: ${m5.profit_factor})\n` +
+                  `   • 5m Support: $${m5.live.sup_zone} | 5m Resistance: $${m5.live.res_zone}`;
         }
-      } else if (!reply && (ql.includes('dot') || ql.includes('rule') || ql.includes('safely') || ql.includes('support') || ql.includes('resistance'))) {
-        reply = `🎯 HOW OUR GOLD VIP INDICATOR (SR BREAK + DOT 2-3-4) WORKS:\n` +
-                `1️⃣ Never Chases Dot #1 Alone: On XAUUSD, the 1st exhaustion dot often forms early in a strong impulse. We wait for Dot #2, #3, or max #4 inside a ChartPrime Support ($${lv.sup_zone}) or Resistance ($${lv.res_zone}) box.\n` +
-                `2️⃣ Break Support / Break Resistance Rule: If Dot #1 prints and price decisively breaks Support or Resistance with volume delta, we enter the breakout continuation.\n` +
-                `3️⃣ Auto-BreakEven Protection: TP1 is set at 0.68x ATR ($${(lv.atr14 * 0.68).toFixed(2)}). Once touched, 50% profit is locked and Stop-Loss moves to Entry.`;
+      } else if (!reply && (ql.includes('compare') || ql.includes('engine 1') || ql.includes('engine 2'))) {
+        const mVip  = STATE.models[`XAUUSD_${currentTf}_VIP_DOT`];
+        const mCore = STATE.models[`XAUUSD_${currentTf}_CORE`];
+        if (mVip && mCore) {
+          reply = `⚖️ ${currentTf.toUpperCase()} GOLD AUDIT — ENGINE 2 vs ENGINE 1:\n\n` +
+                  `🔥 Engine 2 — Gold VIP (SR Break + Dot 2-4 on ${currentTf}):\n` +
+                  `   • Win Rate: ${mVip.win_rate}% (${mVip.wins}W / ${mVip.losses}L) | Net: +$${mVip.net_pnl_100} (PF: ${mVip.profit_factor})\n\n` +
+                  `📐 Engine 1 — Core EMA-20 + BB 1.9SD (${currentTf}):\n` +
+                  `   • Win Rate: ${mCore.win_rate}% (${mCore.wins}W / ${mCore.losses}L) | Net: +$${mCore.net_pnl_100} (PF: ${mCore.profit_factor})`;
+        }
+      } else if (!reply && (ql.includes('dot') || ql.includes('rule') || ql.includes('safely'))) {
+        reply = `🎯 GOLD ${currentTf.toUpperCase()} VIP INDICATOR RULES (SR BREAK + DOTS 2-4):\n` +
+                `1️⃣ Reversal Entry: Wait for Exhaustion Dot #2, #3, or max #4 inside the ChartPrime Support ($${lv.sup_zone}) or Resistance ($${lv.res_zone}) zone.\n` +
+                `2️⃣ Breakout Entry: Enter after Dot #1 ONLY when price confirms a Break of Support or Break of Resistance with volume.\n` +
+                `3️⃣ Auto-BE Protection: TP1 is placed at 0.68x ATR ($${(lv.atr14 * 0.68).toFixed(2)}). Once hit, 50% profit is locked and SL moves to Entry.`;
       } else if (!reply) {
         const [p1, p2] = pending;
-        const distSup = Math.abs(lv.price - lv.sup_zone).toFixed(2);
-        const distRes = Math.abs(lv.res_zone - lv.price).toFixed(2);
-        reply = `🧠 AURA DEEP QUANT BRIEFING (${currentAsset} @ $${lv.price}):\n` +
-                `• Active Engine: ${d.strategy_short} (${d.win_rate}% Verified Win Rate)\n` +
-                `• Market Structure: ${lv.trend} | EMA20: $${lv.ema20} | RSI(14): ${lv.rsi14}\n` +
-                `• Institutional Zones: Support Box @ $${lv.sup_zone} ($${distSup} away) | Resistance Box @ $${lv.res_zone} ($${distRes} away)\n` +
+        reply = `🧠 AURA ${currentTf.toUpperCase()} QUANT BRIEFING (${currentAsset} @ $${lv.price}):\n` +
+                `• Active Engine: ${d.strategy_short} (${d.win_rate}% Win Rate)\n` +
+                `• ${currentTf.toUpperCase()} Zones: Support Box @ $${lv.sup_zone} | Resistance Box @ $${lv.res_zone}\n` +
                 `• Locked Buy Limit: $${p1.limit_price} (SL: $${p1.sl} → TP1: $${p1.tp1})\n` +
                 `• Locked Sell Limit: $${p2.limit_price} (SL: $${p2.sl} → TP1: $${p2.tp1})`;
       }
@@ -1003,9 +1028,9 @@
       const d = getActiveModel();
       if (!d) return;
       const lv = d.live, lastT = d.last_100_trades[0];
-      const msg = `Gold (${d.strategy_short}) is trading at $${lv.price} between Support ($${lv.sup_zone}) & Resistance ($${lv.res_zone}). Latest closed trade ${lastT.id} (${lastT.badge}) closed as ${lastT.result} (${lastT.pnl >= 0 ? '+$' : '-$'}${Math.abs(lastT.pnl)}).`;
-      document.getElementById('proactiveAiText').innerText = msg;
-      askConcierge('Deep market briefing');
+      document.getElementById('proactiveAiText').innerText =
+        `[${currentTf.toUpperCase()} Mode] Gold is at $${lv.price} between Support ($${lv.sup_zone}) & Resistance ($${lv.res_zone}). Latest ${currentTf} trade ${lastT.id} (${lastT.badge}) closed as ${lastT.result} (${lastT.pnl >= 0 ? '+$' : '-$'}${Math.abs(lastT.pnl)}).`;
+      askConcierge('Compare 1m vs 5m timeframe performance on Gold VIP Indicator');
     }
 
     function dismissAiToast() {
@@ -1013,7 +1038,7 @@
     }
 
     function openToastInsight() {
-      askConcierge('Compare Engine 1 vs Engine 2 (SR Break + Dots 2-4) results');
+      askConcierge('Compare 1m vs 5m timeframe performance on Gold VIP Indicator');
       document.getElementById('aiBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
