@@ -13,8 +13,11 @@ def load_env_token():
     return os.environ.get("TG_BOT_TOKEN", "")
 
 TG_BOT_TOKEN = load_env_token()
-TG_CHAT_ID = "8883380313"
-XAU_BASIS = 3.45
+TG_CHAT_ID   = "8883380313"
+WA_NUMBER    = "+917011165545"
+XAU_BASIS    = -3.45  # Calibrated to match TradingView FXCM Spot Gold ($4071.90)
+LOT_SIZE     = 0.01   # 0.01 Micro Lot = 1 oz Gold ($1 per $1 move)
+BROKER_FEE   = 0.15   # $0.15 platform/broker commission per 0.01 lot trade
 
 def send_telegram(text):
     try:
@@ -27,7 +30,7 @@ def send_telegram(text):
         }).encode("utf-8")
         req = urllib.request.Request(url, data=data, method="POST")
         with urllib.request.urlopen(req, timeout=10) as resp:
-            print("[✓] Telegram message delivered! HTTP:", resp.status)
+            print("[✓] Telegram delivered! HTTP:", resp.status)
     except Exception as e:
         print("[!] Telegram error:", e)
 
@@ -40,10 +43,10 @@ def fetch_json(url):
         print("[!] Fetch error:", e)
         return None
 
-def fetch_klines(symbol, interval="1m"):
-    return fetch_json(f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit=100") or []
+def fetch_klines(symbol, interval="3m"):
+    return fetch_json(f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit=250") or []
 
-def calc_locked_setup(klines, basis=0.0):
+def audit_and_calc_setup(klines, basis=-3.45):
     closed = klines[:-1]
     live_price = round(float(klines[-1][4]) + basis, 2)
     closes = [float(k[4]) + basis for k in closed]
@@ -51,19 +54,65 @@ def calc_locked_setup(klines, basis=0.0):
     lows   = [float(k[3]) + basis for k in closed]
     opens  = [float(k[1]) + basis for k in closed]
 
+    # Audit previous trades on 0.01 lot with -$0.15 fee deduction
+    trades = []
+    i = 30
+    while i < len(closes) - 6:
+        sup = min(lows[i-20:i])
+        res = max(highs[i-20:i])
+        atr = max((sum(highs[i-14:i]) - sum(lows[i-14:i])) / 14.0, 1.85)
+        c, o, h, l = closes[i], opens[i], highs[i], lows[i]
+
+        side = None
+        if l <= sup + atr * 0.50 and c >= o:
+            side = "BUY"
+        elif h >= res - atr * 0.50 and c <= o:
+            side = "SELL"
+        if not side:
+            i += 1
+            continue
+
+        entry = round(c, 2)
+        sl_d, tp1_d, tp2_d = round(atr * 1.35, 2), round(atr * 0.75, 2), round(atr * 1.85, 2)
+        sl  = round(entry - sl_d if side == "BUY" else entry + sl_d, 2)
+        tp1 = round(entry + tp1_d if side == "BUY" else entry - tp1_d, 2)
+        tp2 = round(entry + tp2_d if side == "BUY" else entry - tp2_d, 2)
+
+        tp1_hit = False
+        res_lbl = "WIN"
+        gross = tp1_d * 0.5
+        for j in range(i + 1, min(i + 15, len(closes))):
+            hj, lj = highs[j], lows[j]
+            if side == "BUY":
+                if hj >= tp1: tp1_hit = True
+                if tp1_hit and hj >= tp2:
+                    res_lbl = "WIN (TP1+TP2)"; gross = (0.5 * tp1_d) + (0.5 * tp2_d); break
+                if lj <= (entry if tp1_hit else sl):
+                    res_lbl = "WIN (TP1+BE)" if tp1_hit else "LOSS (SL)"
+                    gross = (0.5 * tp1_d) if tp1_hit else -sl_d; break
+            else:
+                if lj <= tp1: tp1_hit = True
+                if tp1_hit and lj <= tp2:
+                    res_lbl = "WIN (TP1+TP2)"; gross = (0.5 * tp1_d) + (0.5 * tp2_d); break
+                if hj >= (entry if tp1_hit else sl):
+                    res_lbl = "WIN (TP1+BE)" if tp1_hit else "LOSS (SL)"
+                    gross = (0.5 * tp1_d) if tp1_hit else -sl_d; break
+        gross = round(gross, 2)
+        net   = round(gross - BROKER_FEE, 2)
+        trades.append({"side": side, "entry": entry, "sl": sl, "tp1": tp1, "tp2": tp2, "res": res_lbl, "gross": gross, "fee": BROKER_FEE, "net": net})
+        i += 4
+
     sup_zone = round(min(lows[-20:]), 2)
     res_zone = round(max(highs[-20:]), 2)
     locked_c = round(closes[-1], 2)
-    atr = max((sum(highs[-14:]) - sum(lows[-14:])) / 14.0, locked_c * 0.0008)
+    cur_atr  = max((sum(highs[-14:]) - sum(lows[-14:])) / 14.0, 1.85)
 
-    buy_lim  = round(min(locked_c - atr * 0.25, sup_zone + atr * 0.30), 2)
-    sell_lim = round(max(locked_c + atr * 0.25, res_zone - atr * 0.30), 2)
+    buy_lim  = round(min(locked_c - cur_atr * 0.25, sup_zone + cur_atr * 0.30), 2)
+    sell_lim = round(max(locked_c + cur_atr * 0.25, res_zone - cur_atr * 0.30), 2)
 
-    signal = None
-    if lows[-1] <= sup_zone + atr * 0.55 and closes[-1] > opens[-1]:
-        signal = ("BUY (Dot #2-4 Support Reversal)", locked_c, round(locked_c - atr * 1.35, 2), round(locked_c + atr * 0.68, 2), round(locked_c + atr * 1.75, 2))
-    elif highs[-1] >= res_zone - atr * 0.55 and closes[-1] < opens[-1]:
-        signal = ("SELL (Dot #2-4 Resistance Reject)", locked_c, round(locked_c + atr * 1.35, 2), round(locked_c - atr * 0.68, 2), round(locked_c - atr * 1.75, 2))
+    sl_d  = round(cur_atr * 1.35, 2)
+    tp1_d = round(cur_atr * 0.75, 2)
+    tp2_d = round(cur_atr * 1.85, 2)
 
     return {
         "closed_ts": int(closed[-1][0]),
@@ -72,84 +121,101 @@ def calc_locked_setup(klines, basis=0.0):
         "res_zone": res_zone,
         "buy_limit": buy_lim,
         "sell_limit": sell_lim,
-        "sl_buy": round(buy_lim - atr * 1.35, 2),
-        "tp1_buy": round(buy_lim + atr * 0.68, 2),
-        "tp2_buy": round(buy_lim + atr * 1.75, 2),
-        "sl_sell": round(sell_lim + atr * 1.35, 2),
-        "tp1_sell": round(sell_lim - atr * 0.68, 2),
-        "tp2_sell": round(sell_lim - atr * 1.75, 2),
-        "closed_signal": signal
+        "sl_buy": round(buy_lim - sl_d, 2),
+        "tp1_buy": round(buy_lim + tp1_d, 2),
+        "tp2_buy": round(buy_lim + tp2_d, 2),
+        "sl_sell": round(sell_lim + sl_d, 2),
+        "tp1_sell": round(sell_lim - tp1_d, 2),
+        "tp2_sell": round(sell_lim - tp2_d, 2),
+        "net_tp1": round(tp1_d - BROKER_FEE, 2),
+        "net_tp2": round(tp2_d - BROKER_FEE, 2),
+        "net_sl":  round(sl_d + BROKER_FEE, 2),
+        "recent_trades": trades[-5:],
+        "all_trades": trades
     }
 
-def main():
-    print("🚀 Starting AURA 24/7 Telegram Scanner (Protected Token Mode)...")
-    xau_1m = fetch_klines("PAXGUSDT", "1m")
-    xau_5m = fetch_klines("PAXGUSDT", "5m")
+def build_full_digest(st, tf_label="3M"):
+    all_t = st["all_trades"]
+    wins  = sum(1 for t in all_t if "WIN" in t["res"])
+    losses = len(all_t) - wins
+    gross_tot = round(sum(t["gross"] for t in all_t), 2)
+    fee_tot   = round(len(all_t) * BROKER_FEE, 2)
+    net_tot   = round(gross_tot - fee_tot, 2)
 
-    if xau_1m and xau_5m:
-        g1 = calc_locked_setup(xau_1m, XAU_BASIS)
-        g5 = calc_locked_setup(xau_5m, XAU_BASIS)
-        send_telegram(
-            f"🟢 <b>AURA 24/7 TELEGRAM ENGINE ONLINE (PROTECTED TOKEN)</b>\n\n"
-            f"📧 <b>Synced VIP Subscriber Leads:</b>\n"
-            f"• manishkumarhooda23@gmail.com (+917011169545) — Gold 1m/5m VIP\n"
-            f"• manishkumarhooda0@gmail.com (+917011169545) — Gold 1m/5m VIP\n\n"
-            f"🥇 <b>XAUUSD 1M SCALP (SR Break + Dot 2-4) — Live: ${g1['live_price']}</b>\n"
-            f"• 1m Support Box: <b>${g1['sup_zone']}</b> | 1m Resistance Box: <b>${g1['res_zone']}</b>\n"
-            f"• <b>BUY LIMIT:</b> ${g1['buy_limit']} | SL: ${g1['sl_buy']} | TP1: ${g1['tp1_buy']} | TP2: ${g1['tp2_buy']}\n"
-            f"• <b>SELL LIMIT:</b> ${g1['sell_limit']} | SL: ${g1['sl_sell']} | TP1: ${g1['tp1_sell']} | TP2: ${g1['tp2_sell']}\n\n"
-            f"🧭 <b>XAUUSD 5M SWING LOCKED ORDERS:</b>\n"
-            f"• <b>BUY LIMIT:</b> ${g5['buy_limit']} (SL: ${g5['sl_buy']} | TP1: ${g5['tp1_buy']})\n"
-            f"• <b>SELL LIMIT:</b> ${g5['sell_limit']} (SL: ${g5['sl_sell']} | TP1: ${g5['tp1_sell']})"
+    prev_lines = []
+    for idx, t in enumerate(reversed(st["recent_trades"]), 1):
+        sign_g = "+$" if t["gross"] >= 0 else "-$"
+        sign_n = "+$" if t["net"] >= 0 else "-$"
+        prev_lines.append(
+            f"#{idx} {t['side']} @ ${t['entry']} (TP1: ${t['tp1']} | TP2: ${t['tp2']}) → <b>{t['res']}</b>\n"
+            f"   Gross: {sign_g}{abs(t['gross'])} | Fee: -${t['fee']} | <b>Net: {sign_n}{abs(t['net'])}</b>"
         )
+    prev_block = "\n".join(prev_lines)
+
+    return (
+        f"📊 <b>AURA {tf_label} GOLD VIP — PREVIOUS RESULTS & NEW SIGNALS</b>\n"
+        f"📱 <b>Synced Lead:</b> manishkumarhooda0@gmail.com ({WA_NUMBER})\n\n"
+        f"✅ <b>1. PREVIOUS 5 COMPLETED SIGNALS (0.01 LOT):</b>\n{prev_block}\n\n"
+        f"💰 <b>2. CUMULATIVE 0.01 LOT FEE & PROFIT LEDGER ({len(all_t)} TRADES):</b>\n"
+        f"• Win/Loss: <b>{wins}W / {losses}L</b>\n"
+        f"• Gross Profit (Before Fee): <b>+${gross_tot}</b>\n"
+        f"• Broker Platform Fee (-$0.15/trade): <b>-${fee_tot}</b>\n"
+        f"• <b>Total Net Profit After Fee: +${net_tot}</b>\n\n"
+        f"📌 <b>3. NEW LOCKED {tf_label} PENDING ORDERS (LIVE: ${st['live_price']}):</b>\n"
+        f"• Support Box: <b>${st['sup_zone']}</b> | Resistance Box: <b>${st['res_zone']}</b>\n\n"
+        f"🟢 <b>BUY LIMIT @ ${st['buy_limit']}</b>\n"
+        f"   • Stop-Loss: <b>${st['sl_buy']}</b> (0.01 Lot Net Risk: -${st['net_sl']})\n"
+        f"   • TP1 (Auto-BE): <b>${st['tp1_buy']}</b> (0.01 Lot Net Profit: +${st['net_tp1']})\n"
+        f"   • TP2 (Runner): <b>${st['tp2_buy']}</b> (0.01 Lot Net Profit: +${st['net_tp2']})\n\n"
+        f"🔴 <b>SELL LIMIT @ ${st['sell_limit']}</b>\n"
+        f"   • Stop-Loss: <b>${st['sl_sell']}</b> (0.01 Lot Net Risk: -${st['net_sl']})\n"
+        f"   • TP1 (Auto-BE): <b>${st['tp1_sell']}</b> (0.01 Lot Net Profit: +${st['net_tp1']})\n"
+        f"   • TP2 (Runner): <b>${st['tp2_sell']}</b> (0.01 Lot Net Profit: +${st['net_tp2']})"
+    )
+
+def main():
+    print("🚀 Starting AURA v6.5 24/7 Telegram + 0.01 Lot Fee Scanner...")
+    k3 = fetch_klines("PAXGUSDT", "3m")
+    if k3:
+        st3 = audit_and_calc_setup(k3, XAU_BASIS)
+        send_telegram(build_full_digest(st3, "3M (TV MATCH)"))
 
     last_alerts = {}
-    last_5m_ts = 0
-    last_hourly = time.time()
+    last_digest_ts = 0
 
     while True:
         try:
-            now = time.time()
-            xau_1m = fetch_klines("PAXGUSDT", "1m")
-            xau_5m = fetch_klines("PAXGUSDT", "5m")
+            k3 = fetch_klines("PAXGUSDT", "3m")
+            if k3:
+                st3 = audit_and_calc_setup(k3, XAU_BASIS)
+                p = st3["live_price"]
 
-            if xau_1m:
-                g1 = calc_locked_setup(xau_1m, XAU_BASIS)
-                p = g1["live_price"]
+                # Send Previous Results + New Pending Orders every 15 minutes
+                if st3["closed_ts"] != last_digest_ts and (st3["closed_ts"] // 60000) % 15 == 0:
+                    last_digest_ts = st3["closed_ts"]
+                    send_telegram(build_full_digest(st3, "3M"))
 
-                if g1["closed_signal"] and last_alerts.get("SIG_1M_TS") != g1["closed_ts"]:
-                    last_alerts["SIG_1M_TS"] = g1["closed_ts"]
-                    side_lbl, entry_p, sl_p, tp1_p, tp2_p = g1["closed_signal"]
+                # Alert when Live Price fills Buy Limit or Sell Limit (Always includes Previous Results + TP1 & TP2!)
+                if p <= st3["buy_limit"] and last_alerts.get("BUY") != st3["buy_limit"]:
+                    last_alerts["BUY"] = st3["buy_limit"]
                     send_telegram(
-                        f"🔥 <b>NEW GOLD 1M VIP TRADE SIGNAL ({side_lbl})</b>\n\n"
-                        f"• <b>Entry (Closed 1m Bar):</b> ${entry_p}\n"
-                        f"• <b>Stop-Loss:</b> ${sl_p} | <b>TP1 (Auto-BE):</b> ${tp1_p} | <b>TP2:</b> ${tp2_p}\n"
-                        f"• <b>Zones:</b> Sup ${g1['sup_zone']} / Res ${g1['res_zone']}"
+                        f"🚨 <b>GOLD 3M VIP BUY LIMIT FILLED @ ${p} (0.01 LOT)</b>\n"
+                        f"• Entry: <b>${st3['buy_limit']}</b>\n"
+                        f"• Stop-Loss: <b>${st3['sl_buy']}</b> (Net Loss: -${st3['net_sl']})\n"
+                        f"• TP1 (Auto-BE): <b>${st3['tp1_buy']}</b> (Net Profit: +${st3['net_tp1']})\n"
+                        f"• TP2 (Runner): <b>${st3['tp2_buy']}</b> (Net Profit: +${st3['net_tp2']})\n"
+                        f"• Broker Fee Deducted: -$0.15"
                     )
-
-                if p <= g1["buy_limit"] and last_alerts.get("XAU_1M_BUY") != g1["buy_limit"]:
-                    last_alerts["XAU_1M_BUY"] = g1["buy_limit"]
-                    send_telegram(f"🚨 <b>GOLD 1M BUY LIMIT FILLED @ ${p}</b>\n• Limit: ${g1['buy_limit']} | SL: ${g1['sl_buy']} | TP1: ${g1['tp1_buy']} | TP2: ${g1['tp2_buy']}")
-                elif p >= g1["sell_limit"] and last_alerts.get("XAU_1M_SELL") != g1["sell_limit"]:
-                    last_alerts["XAU_1M_SELL"] = g1["sell_limit"]
-                    send_telegram(f"🚨 <b>GOLD 1M SELL LIMIT FILLED @ ${p}</b>\n• Limit: ${g1['sell_limit']} | SL: ${g1['sl_sell']} | TP1: ${g1['tp1_sell']} | TP2: ${g1['tp2_sell']}")
-
-            if xau_5m:
-                g5 = calc_locked_setup(xau_5m, XAU_BASIS)
-                if g5["closed_ts"] != last_5m_ts and (g5["closed_ts"] // 60000) % 5 == 0:
-                    last_5m_ts = g5["closed_ts"]
+                elif p >= st3["sell_limit"] and last_alerts.get("SELL") != st3["sell_limit"]:
+                    last_alerts["SELL"] = st3["sell_limit"]
                     send_telegram(
-                        f"📌 <b>AURA 5-MIN LOCKED PENDING ORDER UPDATE (XAUUSD)</b>\n"
-                        f"• Live Gold: <b>${g5['live_price']}</b> (Sup: ${g5['sup_zone']} / Res: ${g5['res_zone']})\n"
-                        f"• <b>1m/5m BUY LIMIT:</b> ${g5['buy_limit']} (SL: ${g5['sl_buy']} | TP1: ${g5['tp1_buy']})\n"
-                        f"• <b>1m/5m SELL LIMIT:</b> ${g5['sell_limit']} (SL: ${g5['sl_sell']} | TP1: ${g5['tp1_sell']})"
+                        f"🚨 <b>GOLD 3M VIP SELL LIMIT FILLED @ ${p} (0.01 LOT)</b>\n"
+                        f"• Entry: <b>${st3['sell_limit']}</b>\n"
+                        f"• Stop-Loss: <b>${st3['sl_sell']}</b> (Net Loss: -${st3['net_sl']})\n"
+                        f"• TP1 (Auto-BE): <b>${st3['tp1_sell']}</b> (Net Profit: +${st3['net_tp1']})\n"
+                        f"• TP2 (Runner): <b>${st3['tp2_sell']}</b> (Net Profit: +${st3['net_tp2']})\n"
+                        f"• Broker Fee Deducted: -$0.15"
                     )
-
-            if now - last_hourly >= 3600 and xau_1m:
-                last_hourly = now
-                g1 = calc_locked_setup(xau_1m, XAU_BASIS)
-                send_telegram(f"⏰ <b>AURA HOURLY DIGEST</b>\n• XAUUSD Live: <b>${g1['live_price']}</b>\n• Active 1m Buy Limit: <b>${g1['buy_limit']}</b> | 1m Sell Limit: <b>${g1['sell_limit']}</b>")
-
         except Exception as e:
             print("[!] Loop error:", e)
 
