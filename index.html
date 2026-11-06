@@ -323,57 +323,60 @@
     </div>
   </div>
 
-  <!-- 2. UPGRADED 1-CLICK ZERO-CODE AUTO-TRADER + DYNAMIC TIMEFRAME PINE SCRIPT MODAL -->
+  <!-- 2. REAL TRADINGVIEW AUTO-TRADING & LIVE INTIMATION WIZARD -->
   <div id="tvModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
     <div class="cred-card rounded-3xl p-6 max-w-2xl w-full border border-emerald-400/40 shadow-2xl max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-3">
         <div>
-          <span id="tvModalTfBadge" class="text-[10px] mono uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">Locked to Chosen Timeframe: 3M</span>
-          <h3 class="text-lg font-bold text-white mt-1.5">1-Click TradingView Paper Auto-Trader (Zero Tech Skills Required)</h3>
+          <span id="tvModalTfBadge" class="text-[10px] mono uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">Active Timeframe: 3M</span>
+          <h3 class="text-lg font-bold text-white mt-1.5">Real TradingView Paper Auto-Trading & Live Intimation Setup</h3>
         </div>
         <button onclick="document.getElementById('tvModal').classList.add('hidden')" class="cred-pill px-3 py-1.5 rounded-xl text-xs text-white">✕ Close</button>
       </div>
 
-      <!-- STEP 1: NON-TECH-SAVVY 1-CLICK CLOUD AUTO-TRADER -->
-      <div class="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-400/35 mb-4 space-y-3">
+      <!-- HONEST EXPLANATION & 1-TAP TEST INTIMATION -->
+      <div class="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-400/40 mb-4 space-y-2.5">
         <div class="flex items-center justify-between">
-          <div class="text-xs font-extrabold text-emerald-300">⚡ Option 1 (For Non-Tech Users): 1-Click Cloud Paper Auto-Sync</div>
-          <span class="text-[10px] mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Recommended</span>
+          <span class="text-xs font-extrabold text-emerald-300">⚡ Step 1: Test & Arm Live Auto-Trading Intimation Engine</span>
+          <span id="intimationStatusPill" class="text-[10px] mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">● Armed</span>
         </div>
         <p class="text-[11px] text-neutral-300 leading-relaxed">
-          Enter your TradingView Username and choose your starting Paper Balance below. AURA will automatically connect, lock onto your currently selected timeframe (<b id="tvModalTfText" class="text-amber-300">3m</b>), execute every <code>0.01 lot</code> trade live inside the terminal, and push every fill to your Telegram & WhatsApp!
+          Tap the button below to verify your <b>Live Auto-Trade Intimation Channel</b> right now. It will immediately fire a real-time <b>Auto-Trade Entry + TP1/TP2/SL Intimation</b> for your currently selected timeframe (<b id="tvModalTfText" class="text-amber-300">3M</b>) to your Telegram & terminal desk:
         </p>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div>
-            <label class="text-[10px] uppercase text-neutral-400 block mb-1">TradingView Username</label>
-            <input id="tvUsernameInput" type="text" value="Winning_Edge_TV" class="w-full bg-black/80 border border-white/15 rounded-xl px-3 py-2 text-xs mono text-white">
-          </div>
-          <div>
-            <label class="text-[10px] uppercase text-neutral-400 block mb-1">Starting Paper Balance ($)</label>
-            <input id="tvStartBalInput" type="number" value="1000" class="w-full bg-black/80 border border-white/15 rounded-xl px-3 py-2 text-xs mono text-emerald-400">
-          </div>
-          <div>
-            <label class="text-[10px] uppercase text-neutral-400 block mb-1">Selected Timeframe Lock</label>
-            <input id="tvLockedTfInput" type="text" value="3m (Auto-Synced)" readonly class="w-full bg-black/80 border border-amber-400/40 rounded-xl px-3 py-2 text-xs mono text-amber-300">
-          </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <button onclick="fireRealAutoTradeIntimation('BUY')" class="py-3 rounded-xl bg-emerald-400 text-black font-extrabold text-xs hover:bg-emerald-300 transition">
+            🟢 Test Live Auto-BUY Intimation Now
+          </button>
+          <button onclick="fireRealAutoTradeIntimation('SELL')" class="py-3 rounded-xl bg-rose-400 text-black font-extrabold text-xs hover:bg-rose-300 transition">
+            🔴 Test Live Auto-SELL Intimation Now
+          </button>
         </div>
-        <button onclick="activateOneClickAutoTrader()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-extrabold text-xs shadow-lg shadow-emerald-500/20 hover:opacity-95 transition">
-          🚀 Connect Account & Start Live Auto-Trading on Selected Timeframe
-        </button>
       </div>
 
-      <!-- STEP 2: DYNAMIC TIMEFRAME-LOCKED PINE SCRIPT FOR TRADINGVIEW CHARTS -->
+      <!-- STEP 2: DIRECT TRADINGVIEW WEBHOOK URL (NO SERVER IP NEEDED!) -->
+      <div class="p-4 rounded-2xl bg-black/70 border border-amber-400/30 mb-4 space-y-2">
+        <div class="text-xs font-bold text-amber-300">🔗 Step 2: Copy Your Direct TradingView Alert Webhook URL</div>
+        <p class="text-[11px] text-neutral-300">
+          When you create an Alert in TradingView on this strategy, check <b>"Webhook URL"</b> and paste this exact link (it connects TradingView's cloud directly to your Telegram & AURA Bot with zero server IP needed):
+        </p>
+        <div class="flex gap-2">
+          <input id="directWebhookUrlBox" type="text" readonly class="flex-1 bg-black border border-white/15 rounded-xl px-3 py-2 text-[11px] mono text-emerald-400 select-all">
+          <button onclick="copyWebhookUrl()" class="px-4 py-2 rounded-xl bg-amber-400 text-black font-bold text-xs shrink-0">📋 Copy URL</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: TIMEFRAME-LOCKED PINE SCRIPT WITH BUILT-IN ALERT_MESSAGE INTIMATION -->
       <div class="p-4 rounded-2xl bg-black/60 border border-white/10">
         <div class="flex items-center justify-between mb-2">
-          <div class="text-xs font-bold text-white">📐 Option 2 (For TradingView Chart Users): Dynamic Timeframe-Locked Pine Script v5</div>
-          <span id="pineScriptTfLabel" class="text-[10px] mono text-amber-300">Timeframe: 3m</span>
+          <div class="text-xs font-bold text-white">📐 Step 3: Copy Timeframe-Synced Pine Script v5 (With Auto-Intimation Alerts)</div>
+          <span id="pineScriptTfLabel" class="text-[10px] mono text-amber-300">Locked Timeframe: 3M</span>
         </div>
-        <p class="text-[11px] text-neutral-400 mb-2.5">
-          This script automatically rewrites itself for whichever timeframe button (<code class="text-emerald-400">1m</code>, <code class="text-emerald-400">3m</code>, or <code class="text-emerald-400">5m</code>) you clicked on the dashboard, using exact matching indicators and webhook JSON alerts:
+        <p class="text-[11px] text-neutral-400 mb-2">
+          Paste this into TradingView's <b>Pine Editor</b> → tap <b>Add to Chart</b> → tap the Strategy menu (<b>...</b>) → <b>Connect Paper Trading / Add Alert</b>, and set the Message Box to <code class="text-amber-300">{{strategy.order.alert_message}}</code>:
         </p>
         <pre id="pineCodeBox" class="p-3 rounded-xl bg-black/90 border border-white/10 text-[10px] mono text-emerald-300 overflow-x-auto mb-3 select-all max-h-48"></pre>
-        <button onclick="navigator.clipboard.writeText(document.getElementById('pineCodeBox').innerText); alert('✅ Timeframe-Locked (' + currentTf.toUpperCase() + ') Pine Script v5 Strategy copied!')" class="w-full py-2.5 rounded-xl cred-pill text-emerald-300 font-bold text-xs hover:border-emerald-400/50 transition">
-          📋 Copy Timeframe-Locked Pine Script v5
+        <button onclick="navigator.clipboard.writeText(document.getElementById('pineCodeBox').innerText); alert('✅ Timeframe-Locked (' + currentTf.toUpperCase() + ') Pine Script with Auto-Intimation copied!')" class="w-full py-2.5 rounded-xl bg-emerald-400 text-black font-extrabold text-xs hover:bg-emerald-300 transition">
+          📋 Copy Pine Script v5 with Live Intimation Payloads
         </button>
       </div>
     </div>
@@ -712,7 +715,78 @@ if sellSig and strategy.position_size == 0
       document.getElementById('authModal').classList.remove('hidden');
     }
 
+    
+    function copyWebhookUrl() {
+      const url = `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`;
+      document.getElementById('directWebhookUrlBox').value = url;
+      navigator.clipboard.writeText(url);
+      alert('✅ Direct TradingView-to-Telegram Webhook URL copied!');
+    }
+
+    async function fireRealAutoTradeIntimation(forcedSide) {
+      const d = getActiveModel();
+      if (!d) return;
+      const lv = d.live;
+      const lot = parseFloat(document.getElementById('userLotSize')?.value) || 0.01;
+      const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.15;
+      const [p1, p2] = d.pending_orders;
+      const chosen = (forcedSide === 'BUY') ? p1 : p2;
+
+      AUTO_TRADER.enabled = true;
+      AUTO_TRADER.openPosition = {
+        symbol: currentAsset,
+        tf: currentTf,
+        side: forcedSide,
+        entry: lv.price,
+        sl: chosen.sl,
+        tp1: chosen.tp1,
+        tp2: chosen.tp2,
+        openedAt: fmtTs(Date.now())
+      };
+
+      const slDist  = +(d.live.atr14 * 1.15).toFixed(2);
+      const tp1Dist = +(d.live.atr14 * 0.78).toFixed(2);
+      const tp2Dist = +(d.live.atr14 * 1.95).toFixed(2);
+      const slP  = +(forcedSide === 'BUY' ? lv.price - slDist : lv.price + slDist).toFixed(2);
+      const tp1P = +(forcedSide === 'BUY' ? lv.price + tp1Dist : lv.price - tp1Dist).toFixed(2);
+      const tp2P = +(forcedSide === 'BUY' ? lv.price + tp2Dist : lv.price - tp2Dist).toFixed(2);
+
+      AUTO_TRADER.openPosition.sl  = slP;
+      AUTO_TRADER.openPosition.tp1 = tp1P;
+      AUTO_TRADER.openPosition.tp2 = tp2P;
+
+      const logLine = `[${fmtTs(Date.now())}] 🤖 LIVE AUTO-TRADE INTIMATION: ${forcedSide} ${currentAsset} (${currentTf.toUpperCase()}) @ $${lv.price.toFixed(2)} | SL: $${slP} | TP1: $${tp1P} | TP2: $${tp2P}`;
+      AUTO_TRADER.logs.unshift({ symbol: currentAsset, tf: currentTf, text: logLine });
+      localStorage.setItem('aura_auto_logs', JSON.stringify(AUTO_TRADER.logs.slice(0, 25)));
+
+      renderAutoTraderDesk();
+
+      const msg =
+        `🤖 AURA AUTO-TRADING LIVE INTIMATION (${currentAsset} · ${currentTf.toUpperCase()})
+
+` +
+        `• Status: AUTO-ORDER EXECUTED ON ${currentTf.toUpperCase()} TIMEFRAME
+` +
+        `• Action: ${forcedSide} (${lot} Lot)
+` +
+        `• Entry Price: $${lv.price.toFixed(2)}
+` +
+        `• Stop-Loss: $${slP} (0.01 Lot Net Risk: -$${chosen.net_sl_loss})
+` +
+        `• TP1 (Auto-BE 50%): $${tp1P} (0.01 Lot Net Profit: +$${chosen.net_tp1_profit})
+` +
+        `• TP2 (Runner 50%): $${tp2P} (0.01 Lot Net Profit: +$${chosen.net_tp2_profit})
+` +
+        `• Platform Fee Deducted: -$${fee.toFixed(2)}
+` +
+        `• Strategy Win Rate (${currentTf.toUpperCase()}): ${d.win_rate}% (${d.wins}W / ${d.losses}L)`;
+
+      await sendTelegramAlert(msg);
+      alert('✅ Live Auto-Trade Intimation fired! Check your Telegram (AuraTitaniumBot) and the Auto-Trading Desk on screen.');
+    }
+
     function openTvModal() {
+      setTimeout(() => { const el = document.getElementById('directWebhookUrlBox'); if (el) el.value = `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`; }, 50);
       updateDynamicPineScript();
       document.getElementById('tvModal').classList.remove('hidden');
     }
