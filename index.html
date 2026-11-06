@@ -28,6 +28,7 @@
     .seg-active { background: #F4F4F6; color: #070709; font-weight: 800; box-shadow: 0 4px 14px rgba(255,255,255,0.2); }
     .gold-active { background: linear-gradient(135deg, #FDE047 0%, #F59E0B 100%); color: #000; font-weight: 800; }
     .tf-active { background: #10B981; color: #000; font-weight: 800; }
+    .vip-blur { filter: blur(7px); user-select: none; pointer-events: none; }
   </style>
 </head>
 <body class="p-3 md:p-6 max-w-[1460px] mx-auto pb-24">
@@ -39,8 +40,8 @@
       <div>
         <div class="flex items-center gap-2 flex-wrap">
           <span class="font-extrabold text-base tracking-tight text-white">AURA TITANIUM</span>
-          <span class="text-[10px] mono uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/35">🔒 Closed-Candle Lock</span>
-          <span id="liveVisitorsBadge" class="text-[10px] mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">👁 Visits: ...</span>
+          <span id="vipStatusBadge" class="text-[10px] mono uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/35">🔒 VIP Gate Armed</span>
+          <span id="liveVisitorsBadge" class="text-[10px] mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">👁 Visits: ...</span>
           <span class="text-[10px] mono px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">✈️ TG Bot: Connected</span>
         </div>
         <div id="syncStatus" class="text-[11px] text-neutral-400 mono mt-0.5">Syncing 1,000 real candles from Binance Vision...</div>
@@ -54,23 +55,21 @@
         <button id="btn-BTCUSD" onclick="selectAsset('BTCUSD')" class="px-3.5 py-1.5 rounded-xl text-neutral-400 hover:text-white transition">BTCUSD · Bitcoin</button>
       </div>
 
-      <!-- NEW: 1M / 5M TIMEFRAME SWITCHER -->
       <div class="cred-pill p-1 rounded-2xl flex items-center gap-1 text-xs mono">
         <button id="tf-1m" onclick="selectTimeframe('1m')" class="tf-active px-3 py-1.5 rounded-xl transition">1m Scalp</button>
         <button id="tf-5m" onclick="selectTimeframe('5m')" class="px-3 py-1.5 rounded-xl text-neutral-300 hover:text-white transition">5m Swing</button>
       </div>
 
-      <!-- DEDICATED GOLD VIP INDICATOR SWITCHER -->
       <div id="engineSelectorWrap" class="cred-pill p-1 rounded-2xl flex items-center gap-1 text-xs">
-        <button id="eng-CORE" onclick="selectEngine('CORE')" class="px-3 py-1.5 rounded-xl text-neutral-300 transition">Engine 1: Core EMA/BB</button>
-        <button id="eng-VIP_DOT" onclick="selectEngine('VIP_DOT')" class="gold-active px-3.5 py-1.5 rounded-xl transition">🔥 Engine 2: Gold SR + Dot (2-4)</button>
+        <button id="eng-CORE" onclick="selectEngine('CORE')" class="px-3 py-1.5 rounded-xl text-neutral-300 transition">Engine 1: Core Free</button>
+        <button id="eng-VIP_DOT" onclick="selectEngine('VIP_DOT')" class="gold-active px-3.5 py-1.5 rounded-xl transition">🔥 Engine 2: Gold SR + Dot (2-4) VIP</button>
       </div>
     </div>
 
     <div class="flex flex-wrap items-center gap-2">
       <button onclick="openStatsModal()" class="cred-pill hover:border-amber-400/40 px-3 py-2 rounded-2xl text-xs font-semibold text-amber-300 transition">📊 Admin & Leads</button>
       <button onclick="downloadCsv()" class="cred-pill hover:border-white/30 px-3 py-2 rounded-2xl text-xs font-semibold text-neutral-200 transition">⬇ 100-Trade CSV</button>
-      <button id="authBtn" onclick="document.getElementById('authModal').classList.remove('hidden')" class="px-3.5 py-2 rounded-2xl text-xs font-bold bg-gradient-to-r from-emerald-400 to-teal-500 text-black shadow-lg shadow-emerald-500/20 hover:opacity-95 transition">👤 Subscribe / VIP Signals</button>
+      <button id="authBtn" onclick="openUnlockModal()" class="px-3.5 py-2 rounded-2xl text-xs font-bold bg-gradient-to-r from-amber-300 to-amber-500 text-black shadow-lg shadow-amber-500/20 hover:opacity-95 transition">🔓 Unlock VIP Signals</button>
     </div>
   </nav>
 
@@ -78,7 +77,7 @@
   <div class="cred-card rounded-2xl px-4 py-2.5 mb-5 flex flex-wrap items-center justify-between gap-2 text-xs border-l-4 border-l-amber-400">
     <div class="flex items-center gap-2">
       <span id="tfLockBadge" class="px-2 py-0.5 rounded bg-emerald-400/20 text-emerald-300 font-bold mono text-[10px]">1M SCALP LOCK</span>
-      <span id="candleLockInfo" class="text-neutral-300">Signals & Pending Orders are locked to the last <b>closed</b> candle so refreshing the window NEVER changes levels mid-bar.</span>
+      <span id="candleLockInfo" class="text-neutral-300">Signals & Pending Orders are locked to the last <b>closed</b> candle so refreshing NEVER changes levels mid-bar.</span>
     </div>
     <span id="nextLockCountdown" class="mono text-amber-300 font-semibold">Next Candle Lock: --:--</span>
   </div>
@@ -117,14 +116,17 @@
     </div>
   </section>
 
-  <!-- LOCKED INSTITUTIONAL PENDING ORDERS + LIVE SR ZONES -->
-  <section class="cred-card rounded-3xl p-6 mb-5">
+  <!-- LOCKED INSTITUTIONAL PENDING ORDERS (BLURRED ON ENGINE 2 UNTIL EMAIL SUBSCRIBED!) -->
+  <section class="cred-card rounded-3xl p-6 mb-5 relative overflow-hidden">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
       <div>
         <span class="text-[10px] mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Locked Closed-Candle Setup · Synced to Telegram</span>
         <h2 id="pendingHeaderTitle" class="text-lg font-bold text-white mt-1.5">Active Institutional Pending Orders (Locked on Closed 1m Bar)</h2>
       </div>
-      <div id="stratTitleBadge" class="text-xs mono text-amber-300 font-semibold"></div>
+      <div class="flex items-center gap-2">
+        <span id="stratTitleBadge" class="text-xs mono text-amber-300 font-semibold"></span>
+        <button id="relockTestBtn" onclick="relockVipForTesting()" class="hidden cred-pill px-2.5 py-1 rounded-lg text-[10px] mono text-neutral-400 hover:text-white" title="Test how new visitors see the blur gate">🔒 Preview Blur Gate</button>
+      </div>
     </div>
     <div id="pendingGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
   </section>
@@ -135,7 +137,7 @@
       <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
         <div>
           <h3 id="chartHeading" class="text-sm font-bold text-white">Live 1-Minute Candlestick Chart + SR Break & Dot (2-4) Markers</h3>
-          <p class="text-[11px] text-neutral-400">Every trade in the 100-trade audit below is plotted directly on this chart</p>
+          <p class="text-[11px] text-neutral-400">Past 100 completed trades are 100% open to audit on the chart; live pending orders require VIP email unlock</p>
         </div>
         <span id="srZoneBadge" class="text-[11px] mono px-2.5 py-1 rounded-full cred-pill text-emerald-400">Support / Resistance Active</span>
       </div>
@@ -150,7 +152,7 @@
           <span class="text-[11px] mono text-emerald-400">● Live Market Brain</span>
         </div>
         <h3 class="text-base font-bold text-white">Institutional Market & Strategy Assistant</h3>
-        <p class="text-xs text-neutral-400 mt-1 mb-3">Compare 1m vs 5m win rates, inspect Support/Resistance boxes, or audit any trade <code class="text-amber-300">#T-001</code>–<code class="text-amber-300">#T-100</code>.</p>
+        <p class="text-xs text-neutral-400 mt-1 mb-3">Compare 1m vs 5m win rates, inspect Support/Resistance boxes, or audit any historical trade <code class="text-amber-300">#T-001</code>–<code class="text-amber-300">#T-100</code>.</p>
         <div class="flex flex-wrap gap-1.5 mb-3">
           <button onclick="askConcierge('Compare 1m vs 5m timeframe performance on Gold VIP Indicator')" class="cred-pill hover:border-amber-400/40 px-2.5 py-1.5 rounded-xl text-[11px] text-amber-300 transition">⏱️ Compare 1m vs 5m</button>
           <button onclick="askConcierge('Compare Engine 1 vs Engine 2 (SR Break + Dots 2-4) results')" class="cred-pill hover:border-white/30 px-2.5 py-1.5 rounded-xl text-[11px] text-neutral-200 transition">⚖️ Engine 1 vs Engine 2</button>
@@ -216,45 +218,46 @@
     <p id="proactiveAiText" class="text-xs text-neutral-200 mt-1.5 leading-relaxed">Scanning 1m XAUUSD Support/Resistance boxes & Exhaustion Dots...</p>
     <div class="flex gap-2 mt-2.5">
       <button onclick="openToastInsight()" class="px-3 py-1 rounded-xl bg-amber-400 text-black font-bold text-[11px]">Compare 1m vs 5m ↑</button>
-      <button onclick="document.getElementById('authModal').classList.remove('hidden')" class="px-3 py-1 rounded-xl cred-pill text-neutral-200 text-[11px]">Get Telegram Alerts</button>
+      <button onclick="openUnlockModal()" class="px-3 py-1 rounded-xl cred-pill text-amber-300 font-semibold text-[11px]">🔓 Unlock VIP Orders</button>
     </div>
   </div>
 
-  <!-- 1. SUBSCRIBER & INDICATOR VIP SIGNUP MODAL -->
+  <!-- 1. SUBSCRIBER & INDICATOR VIP UNLOCK MODAL -->
   <div id="authModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
-    <div class="cred-card rounded-3xl p-6 max-w-md w-full border border-amber-400/30">
+    <div class="cred-card rounded-3xl p-6 max-w-md w-full border border-amber-400/40 shadow-2xl">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-          <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center text-black font-extrabold text-lg">A</div>
+          <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center text-black font-extrabold text-lg">🔓</div>
           <div>
-            <h3 class="text-lg font-bold text-white">VIP Indicator & Signal Access</h3>
-            <p class="text-xs text-neutral-400">Instant access + syncs with our Telegram Desk</p>
+            <h3 class="text-lg font-bold text-white">Unlock Gold VIP Pending Orders</h3>
+            <p class="text-xs text-neutral-400">Unblurs live 1m & 5m SR Break + Dot (2-4) levels immediately</p>
           </div>
         </div>
         <button onclick="document.getElementById('authModal').classList.add('hidden')" class="text-neutral-400 hover:text-white text-sm">✕</button>
       </div>
+      <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-400/20 text-xs text-amber-200 mb-4">
+        ✨ <b>100% Verified Audit:</b> You've seen the last 100 trades below. Enter your email to unblur the live <b>BUY LIMIT</b> & <b>SELL LIMIT</b> prices, Stop-Loss, and TP levels right now.
+      </div>
       <div class="space-y-3 mb-4">
         <div>
-          <label class="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold mb-1 block">Your Email Address (Required)</label>
+          <label class="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold mb-1 block">Your Email Address (Required to Unblur)</label>
           <input id="authEmail" type="email" placeholder="trader@gmail.com" class="w-full bg-black/60 border border-white/15 rounded-2xl px-4 py-3 text-xs mono text-white focus:outline-none focus:border-amber-400">
         </div>
         <div>
-          <label class="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold mb-1 block">Telegram Username or WhatsApp (Optional)</label>
+          <label class="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold mb-1 block">Telegram Username or WhatsApp (Optional for Alerts)</label>
           <input id="authPhone" type="text" placeholder="@username or +91..." class="w-full bg-black/60 border border-white/15 rounded-2xl px-4 py-3 text-xs mono text-white focus:outline-none focus:border-amber-400">
         </div>
         <div>
-          <label class="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold mb-1 block">Choose Signal Subscription Package</label>
+          <label class="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold mb-1 block">Select Indicator Access Tier</label>
           <select id="authTier" class="w-full bg-black/60 border border-white/15 rounded-2xl px-4 py-3 text-xs mono text-amber-300">
             <option value="Gold 1m/5m VIP Indicator (SR Break + Dot 2-4)">🔥 Gold 1m/5m VIP Indicator (SR Break + Dot 2-3-4 Signals)</option>
             <option value="Pro Institutional All-Access">⚡ Pro Institutional All-Access (XAUUSD + BTCUSD)</option>
-            <option value="Free Open-Core Member">🟢 Free Open-Core Terminal Member</option>
           </select>
         </div>
       </div>
       <div id="authMsg" class="text-xs text-emerald-400 mb-3 mono hidden"></div>
       <div class="flex gap-2">
-        <button onclick="handleAuth('signup')" class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-amber-300 to-amber-500 text-black font-extrabold text-xs hover:opacity-95 transition">🚀 Activate & Subscribe Now</button>
-        <button onclick="handleAuth('login')" class="py-3 px-4 rounded-2xl cred-pill text-white font-semibold text-xs hover:border-white/30 transition">Daily Login</button>
+        <button onclick="handleAuth('signup')" class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-300 to-amber-500 text-black font-extrabold text-xs hover:opacity-95 transition shadow-lg shadow-amber-500/20">🔓 Unblur Live VIP Orders Now</button>
       </div>
     </div>
   </div>
@@ -280,17 +283,18 @@
           <div id="statDailyLogins" class="text-xl font-bold mono text-emerald-400 mt-1">--</div>
         </div>
         <div class="p-3.5 rounded-2xl bg-black/60 border border-white/10">
-          <div class="text-[10px] text-neutral-400 uppercase">Captured Emails</div>
+          <div class="text-[10px] text-neutral-400 uppercase">Unlocked Emails</div>
           <div id="statTotalUsers" class="text-xl font-bold mono text-white mt-1">--</div>
         </div>
         <div class="p-3.5 rounded-2xl bg-black/60 border border-white/10">
-          <div class="text-[10px] text-neutral-400 uppercase">VIP / Pro Leads</div>
+          <div class="text-[10px] text-neutral-400 uppercase">VIP Indicator Leads</div>
           <div id="statProSubs" class="text-xl font-bold mono text-amber-300 mt-1">--</div>
         </div>
       </div>
 
       <div class="flex flex-wrap gap-2 mb-5">
         <button onclick="sendHourlySummaryNow()" class="px-4 py-2.5 rounded-xl bg-amber-400 text-black font-bold text-xs">📊 Push Full Stats & 1m/5m Pending Orders to Telegram Now</button>
+        <button onclick="relockVipForTesting(); document.getElementById('statsModal').classList.add('hidden');" class="px-4 py-2.5 rounded-xl cred-pill text-xs text-neutral-200">🔒 Test Visitor Blur Gate View</button>
       </div>
 
       <div class="mb-2">
@@ -316,10 +320,10 @@
     const TG_BOT_TOKEN = '9254638108:AAHEtS8znGu7CapBSVbDZ1VT3DPtsU5qxUE';
     const TG_CHAT_ID   = '8883380313';
 
-    let currentAsset = 'XAUUSD';
-    let currentTf    = '1m';      // Default to 1m timeframe to match your TradingView Gold setup!
+    let currentAsset  = 'XAUUSD';
+    let currentTf     = '1m';
     let currentEngine = 'VIP_DOT';
-    let tradeFilter  = 'ALL';
+    let tradeFilter   = 'ALL';
     const lastLockedTs = { '1m': 0, '5m': 0 };
 
     const STATE = {
@@ -332,6 +336,30 @@
     };
     document.getElementById('xauBasisInput').value = BASIS_OFFSETS['XAUUSD'];
 
+    // VIP UNLOCK CHECK: Blurred on Engine 2 until visitor submits valid email!
+    function isVipUnlocked() {
+      try {
+        const raw = localStorage.getItem('aura_vip_unlocked_user');
+        if (!raw) return false;
+        const u = JSON.parse(raw);
+        return Boolean(u && u.email && u.email.includes('@'));
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function openUnlockModal() {
+      document.getElementById('authMsg').className = 'hidden';
+      document.getElementById('authModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('authEmail').focus(), 100);
+    }
+
+    function relockVipForTesting() {
+      localStorage.removeItem('aura_vip_unlocked_user');
+      applyActiveUser();
+      renderAsset();
+    }
+
     async function sendTelegramAlert(messageText) {
       try {
         const res = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
@@ -343,7 +371,7 @@
       } catch (e) { return false; }
     }
 
-    let globalVisits = parseInt(localStorage.getItem('aura_local_visits') || '15') + 1;
+    let globalVisits = parseInt(localStorage.getItem('aura_local_visits') || '16') + 1;
     localStorage.setItem('aura_local_visits', globalVisits);
     async function trackGlobalVisit() {
       try {
@@ -370,8 +398,8 @@
       const tier  = document.getElementById('authTier').value;
       const msgEl = document.getElementById('authMsg');
 
-      if (!email || !email.includes('@')) {
-        msgEl.innerText = '⚠️ Please enter a valid email address.';
+      if (!email || !email.includes('@') || !email.includes('.')) {
+        msgEl.innerText = '⚠️ Please enter a valid email address to unblur VIP orders.';
         msgEl.className = 'text-xs text-rose-400 mb-3 mono block';
         return;
       }
@@ -391,29 +419,42 @@
         users.unshift(existing);
       }
       localStorage.setItem('aura_users_ledger', JSON.stringify(users));
-      localStorage.setItem('aura_active_user', JSON.stringify(existing));
+      localStorage.setItem('aura_vip_unlocked_user', JSON.stringify(existing));
 
+      // IMMEDIATELY SEND CAPTURED EMAIL & PACKAGE TO YOUR TELEGRAM!
       await sendTelegramAlert(
-        `🔔 <b>NEW AURA TRADER ${mode === 'signup' ? 'SUBSCRIPTION LEAD' : 'LOGIN'}!</b>\n\n` +
-        `📧 <b>Email:</b> <code>${email}</code>\n` +
-        `📱 <b>Contact:</b> <code>${phone}</code>\n` +
-        `💎 <b>Selected Package:</b> ${tier}\n` +
-        `🔢 <b>Login Count:</b> #${existing.logins}\n` +
+        `🔓 <b>NEW VIP INDICATOR UNLOCK & EMAIL CAPTURED!</b>\n\n` +
+        `📧 <b>Subscriber Email:</b> <code>${email}</code>\n` +
+        `📱 <b>TG / WhatsApp:</b> <code>${phone}</code>\n` +
+        `🔥 <b>Unlocked Tier:</b> ${tier}\n` +
+        `🔢 <b>Session Count:</b> #${existing.logins}\n` +
         `👁 <b>Global Site Visits:</b> ${globalVisits}\n` +
-        `🕒 <b>Timestamp:</b> ${nowStr}`
+        `🕒 <b>Time:</b> ${nowStr}`
       );
 
       applyActiveUser();
-      msgEl.innerText = `✅ Activated! Your email (${email}) is registered for ${tier}.`;
+      renderAsset();
+      msgEl.innerText = `✅ Unlocked! Live Gold VIP 1m & 5m Pending Orders are now unblurred.`;
       msgEl.className = 'text-xs text-emerald-400 mb-3 mono block';
-      setTimeout(() => document.getElementById('authModal').classList.add('hidden'), 1000);
+      setTimeout(() => document.getElementById('authModal').classList.add('hidden'), 900);
     }
 
     function applyActiveUser() {
-      const raw = localStorage.getItem('aura_active_user');
-      if (!raw) return;
-      const u = JSON.parse(raw);
-      document.getElementById('authBtn').innerText = `👤 ${u.email.split('@')[0]} (#${u.logins})`;
+      const unlocked = isVipUnlocked();
+      const badge = document.getElementById('vipStatusBadge');
+      const relockBtn = document.getElementById('relockTestBtn');
+      if (unlocked) {
+        const u = JSON.parse(localStorage.getItem('aura_vip_unlocked_user'));
+        document.getElementById('authBtn').innerText = `✅ VIP Unlocked (${u.email.split('@')[0]})`;
+        badge.innerText = '🔓 VIP Unlocked';
+        badge.className = 'text-[10px] mono uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/35';
+        if (relockBtn) relockBtn.classList.remove('hidden');
+      } else {
+        document.getElementById('authBtn').innerText = '🔓 Unlock VIP Signals';
+        badge.innerText = '🔒 VIP Gate Armed';
+        badge.className = 'text-[10px] mono uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/35';
+        if (relockBtn) relockBtn.classList.add('hidden');
+      }
     }
     applyActiveUser();
 
@@ -426,8 +467,8 @@
       const ok = await sendTelegramAlert(
         `📊 <b>AURA TITANIUM — EXECUTIVE STATS & ${currentTf.toUpperCase()} PENDING ORDERS</b>\n\n` +
         `👁 <b>Total Website Visits:</b> ${globalVisits}\n` +
-        `👥 <b>Registered Traders:</b> ${users.length}\n` +
-        `📧 <b>Recent Subscriber Emails:</b>\n${emailList}\n\n` +
+        `👥 <b>Unlocked VIP Emails:</b> ${users.length}\n` +
+        `📧 <b>Recent Subscriber Leads:</b>\n${emailList}\n\n` +
         `📌 <b>LOCKED ${currentAsset} (${currentTf.toUpperCase()}) PENDING ORDERS (${curModel?.strategy_short}):</b>\n` +
         `1️⃣ <b>${p1.type}:</b> $${p1.limit_price} | SL: $${p1.sl} | TP1: $${p1.tp1} | TP2: $${p1.tp2}\n` +
         `2️⃣ <b>${p2.type}:</b> $${p2.limit_price} | SL: $${p2.sl} | TP1: $${p2.tp1} | TP2: $${p2.tp2}`
@@ -503,7 +544,6 @@
       const ema20 = calcEma(closes, 20), ema34 = calcEma(closes, 34), ema50 = calcEma(closes, 50);
       const rsi14 = calcRsi(closes, 14), bb = calcBollinger(closes, 20, 1.9), atr14 = calcAtr(highs, lows, closes, 14);
 
-      // ChartPrime Support/Resistance (20, 2, 1) Pivot Box Detection
       const supZone = [], resZone = [];
       for (let i = 0; i < closes.length; i++) {
         const start = Math.max(0, i - 20);
@@ -513,12 +553,10 @@
         supZone.push(+(Math.min(...pL)).toFixed(2));
       }
 
-      // Wavy Tunnel + Trend ATR Exhaustion Dot Sequence (Dots 1, 2, 3, 4)
       const bullDots = new Array(closes.length).fill(0);
       const bearDots = new Array(closes.length).fill(0);
       let bCount = 0, sCount = 0;
 
-      // Calibrated sensitivity for 1m Scalping vs 5m Swing
       const stretchMult = (tfLabel === '1m') ? 0.65 : 0.85;
       const boxMult     = (tfLabel === '1m') ? 0.55 : 0.45;
 
@@ -900,6 +938,7 @@
       const d = getActiveModel();
       if (!d) return;
       const lv = d.live, riskUsd = parseFloat(document.getElementById('userRiskUsd').value) || 100;
+      const shouldBlurVip = (currentAsset === 'XAUUSD' && currentEngine === 'VIP_DOT' && !isVipUnlocked());
 
       document.getElementById('kpiPrice').innerText = `$${lv.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       document.getElementById('kpiTrend').innerText = `${lv.trend} · Sup: $${lv.sup_zone} / Res: $${lv.res_zone}`;
@@ -919,24 +958,35 @@
       document.getElementById('pendingGrid').innerHTML = d.pending_orders.map(p => {
         const isBuy = p.type.includes('BUY'), units = (riskUsd / Math.max(0.01, p.stop_dist)).toFixed(3);
         return `
-        <div class="p-5 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-between gap-3">
+        <div class="relative p-5 rounded-2xl bg-black/50 border ${shouldBlurVip ? 'border-amber-400/40' : 'border-white/10'} flex flex-col justify-between gap-3 overflow-hidden">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="px-2.5 py-1 rounded-lg text-xs mono font-bold ${isBuy ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'}">${p.type}</span>
-              <span class="text-sm font-bold text-white mono">${p.symbol} (${currentTf}) @ $${p.limit_price.toFixed(2)}</span>
+              <span class="text-sm font-bold text-white mono ${shouldBlurVip ? 'vip-blur' : ''}">${p.symbol} (${currentTf}) @ $${p.limit_price.toFixed(2)}</span>
               <span class="text-[10px] mono px-2 py-0.5 rounded bg-white/5 text-neutral-300">🔒 Locked</span>
             </div>
-            <span class="text-[11px] mono text-amber-300">Size: ${units} Units ($${riskUsd} Risk)</span>
+            <span class="text-[11px] mono text-amber-300 ${shouldBlurVip ? 'vip-blur' : ''}">Size: ${units} Units</span>
           </div>
-          <div class="grid grid-cols-3 gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 mono text-xs">
+
+          <div class="grid grid-cols-3 gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 mono text-xs ${shouldBlurVip ? 'vip-blur' : ''}">
             <div><div class="text-[10px] text-neutral-400">STOP LOSS</div><div class="text-rose-400 font-semibold">$${p.sl.toFixed(2)}</div></div>
             <div><div class="text-[10px] text-neutral-400">TP1 (AUTO-BE)</div><div class="text-emerald-400 font-semibold">$${p.tp1.toFixed(2)}</div></div>
             <div><div class="text-[10px] text-neutral-400">TP2 (RUNNER)</div><div class="text-amber-300 font-semibold">$${p.tp2.toFixed(2)}</div></div>
           </div>
-          <div class="flex items-center justify-between text-xs text-neutral-300">
+
+          <div class="flex items-center justify-between text-xs text-neutral-300 ${shouldBlurVip ? 'vip-blur' : ''}">
             <span><span class="text-neutral-500">Confluence:</span> ${p.condition}</span>
             <button onclick="sendTelegramAlert('📌 <b>AURA LOCKED PENDING ORDER (${p.symbol} ${currentTf.toUpperCase()} - ${d.strategy_short})</b>\\n• ${p.type} @ <b>$${p.limit_price.toFixed(2)}</b>\\n• SL: $${p.sl.toFixed(2)} | TP1: $${p.tp1.toFixed(2)} | TP2: $${p.tp2.toFixed(2)}\\n• Rule: ${p.condition}')" class="cred-pill px-2.5 py-1 rounded-lg text-[10px] mono text-sky-400 hover:border-sky-400/40 shrink-0 ml-2">✈️ Send to TG</button>
           </div>
+
+          ${shouldBlurVip ? `
+          <div onclick="openUnlockModal()" class="cursor-pointer absolute inset-0 bg-black/55 backdrop-blur-[3px] flex flex-col items-center justify-center p-4 text-center z-10 hover:bg-black/45 transition">
+            <span class="text-[10px] mono uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 mb-1.5">🔥 Gold ${currentTf.toUpperCase()} VIP Indicator Setup Ready</span>
+            <div class="text-sm font-extrabold text-white">Live ${p.type} Entry, SL & TP Blurred</div>
+            <p class="text-[11px] text-neutral-300 mt-0.5 mb-2.5">Enter your email for instant access to our ${d.win_rate}% win-rate SR Break + Dot (2-4) levels</p>
+            <button class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-300 to-amber-500 text-black font-extrabold text-xs shadow-lg shadow-amber-500/25">🔓 Tap to Unblur Live ${p.type} (Free Email)</button>
+          </div>
+          ` : ''}
         </div>`;
       }).join('');
 
@@ -967,6 +1017,7 @@
       if (!d) return;
       const q = (preset || document.getElementById('aiQuery').value || 'Deep market briefing').trim();
       const ql = q.toLowerCase(), lv = d.live, pending = d.pending_orders, trades = d.last_100_trades;
+      const lockedMask = (currentAsset === 'XAUUSD' && currentEngine === 'VIP_DOT' && !isVipUnlocked());
       let reply = '';
 
       for (const t of trades) {
@@ -1013,11 +1064,13 @@
                 `3️⃣ Auto-BE Protection: TP1 is placed at 0.68x ATR ($${(lv.atr14 * 0.68).toFixed(2)}). Once hit, 50% profit is locked and SL moves to Entry.`;
       } else if (!reply) {
         const [p1, p2] = pending;
+        const buyTxt  = lockedMask ? '🔒 Blurred (Tap Unlock VIP Signals above)' : `$${p1.limit_price} (SL: $${p1.sl} → TP1: $${p1.tp1})`;
+        const sellTxt = lockedMask ? '🔒 Blurred (Tap Unlock VIP Signals above)' : `$${p2.limit_price} (SL: $${p2.sl} → TP1: $${p2.tp1})`;
         reply = `🧠 AURA ${currentTf.toUpperCase()} QUANT BRIEFING (${currentAsset} @ $${lv.price}):\n` +
                 `• Active Engine: ${d.strategy_short} (${d.win_rate}% Win Rate)\n` +
                 `• ${currentTf.toUpperCase()} Zones: Support Box @ $${lv.sup_zone} | Resistance Box @ $${lv.res_zone}\n` +
-                `• Locked Buy Limit: $${p1.limit_price} (SL: $${p1.sl} → TP1: $${p1.tp1})\n` +
-                `• Locked Sell Limit: $${p2.limit_price} (SL: $${p2.sl} → TP1: $${p2.tp1})`;
+                `• Locked Buy Limit: ${buyTxt}\n` +
+                `• Locked Sell Limit: ${sellTxt}`;
       }
 
       document.getElementById('aiBox').innerText = reply;
@@ -1055,7 +1108,7 @@
 
       const tbody = document.getElementById('subscriberTableBody');
       if (users.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-neutral-500">No leads yet. Test "👤 Subscribe / VIP Signals" in the top bar!</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-neutral-500">No leads yet. Tap the blurred Pending Order card to test!</td></tr>`;
       } else {
         tbody.innerHTML = users.map(u => `
           <tr>
