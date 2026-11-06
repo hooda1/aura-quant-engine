@@ -1,9 +1,18 @@
+import os
 import time
 import json
 import urllib.request
 import urllib.parse
 
-TG_BOT_TOKEN = "9254638108:AAHEtS8znGu7CapBSVbDZ1VT3DPtsU5qxUE"
+def load_env_token():
+    if os.path.exists(".env"):
+        with open(".env", "r") as f:
+            for line in f:
+                if line.startswith("TG_BOT_TOKEN="):
+                    return line.strip().split("=", 1)[1].strip()
+    return os.environ.get("TG_BOT_TOKEN", "")
+
+TG_BOT_TOKEN = load_env_token()
 TG_CHAT_ID = "8883380313"
 XAU_BASIS = 3.45
 
@@ -18,7 +27,7 @@ def send_telegram(text):
         }).encode("utf-8")
         req = urllib.request.Request(url, data=data, method="POST")
         with urllib.request.urlopen(req, timeout=10) as resp:
-            print("[✓] Telegram message delivered:", resp.status)
+            print("[✓] Telegram message delivered! HTTP:", resp.status)
     except Exception as e:
         print("[!] Telegram error:", e)
 
@@ -33,10 +42,6 @@ def fetch_json(url):
 
 def fetch_klines(symbol, interval="1m"):
     return fetch_json(f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit=100") or []
-
-def fetch_global_visits():
-    d = fetch_json("https://api.counterapi.dev/v1/hooda1_aura_quant/visits/")
-    return d.get("count", "32+") if isinstance(d, dict) else "32+"
 
 def calc_locked_setup(klines, basis=0.0):
     closed = klines[:-1]
@@ -54,7 +59,6 @@ def calc_locked_setup(klines, basis=0.0):
     buy_lim  = round(min(locked_c - atr * 0.25, sup_zone + atr * 0.30), 2)
     sell_lim = round(max(locked_c + atr * 0.25, res_zone - atr * 0.30), 2)
 
-    # Check if the just-closed candle triggered a Dot 2-4 or SR Break trade signal
     signal = None
     if lows[-1] <= sup_zone + atr * 0.55 and closes[-1] > opens[-1]:
         signal = ("BUY (Dot #2-4 Support Reversal)", locked_c, round(locked_c - atr * 1.35, 2), round(locked_c + atr * 0.68, 2), round(locked_c + atr * 1.75, 2))
@@ -78,20 +82,16 @@ def calc_locked_setup(klines, basis=0.0):
     }
 
 def main():
-    print("🚀 Starting AURA Zero-Dependency 24/7 Telegram Scanner...")
+    print("🚀 Starting AURA 24/7 Telegram Scanner (Protected Token Mode)...")
     xau_1m = fetch_klines("PAXGUSDT", "1m")
     xau_5m = fetch_klines("PAXGUSDT", "5m")
-    btc_1m = fetch_klines("BTCUSDT", "1m")
-    visits = fetch_global_visits()
 
     if xau_1m and xau_5m:
         g1 = calc_locked_setup(xau_1m, XAU_BASIS)
         g5 = calc_locked_setup(xau_5m, XAU_BASIS)
-        b1 = calc_locked_setup(btc_1m, 0.0) if btc_1m else None
         send_telegram(
-            f"🟢 <b>AURA 24/7 TELEGRAM ENGINE RE-ARMED (WAKE-LOCK ACTIVE)</b>\n\n"
-            f"👁 <b>Global Website Visits:</b> {visits}\n"
-            f"📧 <b>Recent Captured Leads:</b>\n"
+            f"🟢 <b>AURA 24/7 TELEGRAM ENGINE ONLINE (PROTECTED TOKEN)</b>\n\n"
+            f"📧 <b>Synced VIP Subscriber Leads:</b>\n"
             f"• manishkumarhooda23@gmail.com (+917011169545) — Gold 1m/5m VIP\n"
             f"• manishkumarhooda0@gmail.com (+917011169545) — Gold 1m/5m VIP\n\n"
             f"🥇 <b>XAUUSD 1M SCALP (SR Break + Dot 2-4) — Live: ${g1['live_price']}</b>\n"
@@ -117,55 +117,38 @@ def main():
                 g1 = calc_locked_setup(xau_1m, XAU_BASIS)
                 p = g1["live_price"]
 
-                # 1. Alert on 1m Closed-Candle Dot 2-4 / SR Break Signal
                 if g1["closed_signal"] and last_alerts.get("SIG_1M_TS") != g1["closed_ts"]:
                     last_alerts["SIG_1M_TS"] = g1["closed_ts"]
                     side_lbl, entry_p, sl_p, tp1_p, tp2_p = g1["closed_signal"]
                     send_telegram(
                         f"🔥 <b>NEW GOLD 1M VIP TRADE SIGNAL ({side_lbl})</b>\n\n"
                         f"• <b>Entry (Closed 1m Bar):</b> ${entry_p}\n"
-                        f"• <b>Stop-Loss:</b> ${sl_p}\n"
-                        f"• <b>TP1 (Auto-BE):</b> ${tp1_p} | <b>TP2 (Runner):</b> ${tp2_p}\n"
+                        f"• <b>Stop-Loss:</b> ${sl_p} | <b>TP1 (Auto-BE):</b> ${tp1_p} | <b>TP2:</b> ${tp2_p}\n"
                         f"• <b>Zones:</b> Sup ${g1['sup_zone']} / Res ${g1['res_zone']}"
                     )
 
-                # 2. Alert when Live Price fills 1m Pending Buy/Sell Limit
                 if p <= g1["buy_limit"] and last_alerts.get("XAU_1M_BUY") != g1["buy_limit"]:
                     last_alerts["XAU_1M_BUY"] = g1["buy_limit"]
-                    send_telegram(
-                        f"🚨 <b>GOLD 1M BUY LIMIT FILLED @ ${p}</b>\n"
-                        f"• Limit: ${g1['buy_limit']} | SL: ${g1['sl_buy']} | TP1: ${g1['tp1_buy']} | TP2: ${g1['tp2_buy']}"
-                    )
+                    send_telegram(f"🚨 <b>GOLD 1M BUY LIMIT FILLED @ ${p}</b>\n• Limit: ${g1['buy_limit']} | SL: ${g1['sl_buy']} | TP1: ${g1['tp1_buy']} | TP2: ${g1['tp2_buy']}")
                 elif p >= g1["sell_limit"] and last_alerts.get("XAU_1M_SELL") != g1["sell_limit"]:
                     last_alerts["XAU_1M_SELL"] = g1["sell_limit"]
-                    send_telegram(
-                        f"🚨 <b>GOLD 1M SELL LIMIT FILLED @ ${p}</b>\n"
-                        f"• Limit: ${g1['sell_limit']} | SL: ${g1['sl_sell']} | TP1: ${g1['tp1_sell']} | TP2: ${g1['tp2_sell']}"
-                    )
+                    send_telegram(f"🚨 <b>GOLD 1M SELL LIMIT FILLED @ ${p}</b>\n• Limit: ${g1['sell_limit']} | SL: ${g1['sl_sell']} | TP1: ${g1['tp1_sell']} | TP2: ${g1['tp2_sell']}")
 
-            # 3. Every 15 minutes (3 closed 5m bars), send updated Locked Pending Order levels if they shifted
             if xau_5m:
                 g5 = calc_locked_setup(xau_5m, XAU_BASIS)
-                if g5["closed_ts"] != last_5m_ts and (g5["closed_ts"] // 60000) % 15 == 0:
+                if g5["closed_ts"] != last_5m_ts and (g5["closed_ts"] // 60000) % 5 == 0:
                     last_5m_ts = g5["closed_ts"]
                     send_telegram(
-                        f"📌 <b>AURA 15-MIN LOCKED PENDING ORDER UPDATE (XAUUSD)</b>\n"
+                        f"📌 <b>AURA 5-MIN LOCKED PENDING ORDER UPDATE (XAUUSD)</b>\n"
                         f"• Live Gold: <b>${g5['live_price']}</b> (Sup: ${g5['sup_zone']} / Res: ${g5['res_zone']})\n"
-                        f"• <b>BUY LIMIT:</b> ${g5['buy_limit']} (SL: ${g5['sl_buy']} | TP1: ${g5['tp1_buy']})\n"
-                        f"• <b>SELL LIMIT:</b> ${g5['sell_limit']} (SL: ${g5['sl_sell']} | TP1: ${g5['tp1_sell']})"
+                        f"• <b>1m/5m BUY LIMIT:</b> ${g5['buy_limit']} (SL: ${g5['sl_buy']} | TP1: ${g5['tp1_buy']})\n"
+                        f"• <b>1m/5m SELL LIMIT:</b> ${g5['sell_limit']} (SL: ${g5['sl_sell']} | TP1: ${g5['tp1_sell']})"
                     )
 
-            # 4. Hourly Visitor & Stats Digest
             if now - last_hourly >= 3600 and xau_1m:
                 last_hourly = now
-                visits = fetch_global_visits()
                 g1 = calc_locked_setup(xau_1m, XAU_BASIS)
-                send_telegram(
-                    f"⏰ <b>AURA HOURLY EXECUTIVE STATS & TRADES</b>\n"
-                    f"• Global Website Visits: <b>{visits}</b>\n"
-                    f"• XAUUSD Live: <b>${g1['live_price']}</b>\n"
-                    f"• Active 1m Buy Limit: <b>${g1['buy_limit']}</b> | 1m Sell Limit: <b>${g1['sell_limit']}</b>"
-                )
+                send_telegram(f"⏰ <b>AURA HOURLY DIGEST</b>\n• XAUUSD Live: <b>${g1['live_price']}</b>\n• Active 1m Buy Limit: <b>${g1['buy_limit']}</b> | 1m Sell Limit: <b>${g1['sell_limit']}</b>")
 
         except Exception as e:
             print("[!] Loop error:", e)
