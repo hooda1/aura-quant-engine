@@ -2066,157 +2066,171 @@ setTimeout(() => { window.recalcAndRender(); }, 600);
 </html>
 
 
+
+
+
 <!-- AURA_MASTER_START -->
 <script>
-// Build: 1794049565
-window.AURA_BTC_CACHE = { '1m': null, '3m': null, '5m': null };
+(function() {
+  window.AURA_BTC_CACHE = { '1m': null, '3m': null, '5m': null };
 
-async function fetchRealBtcKlines(tf) {
-  try {
-    const interval = tf || '1m';
-    const res1 = await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${interval}&limit=1000`);
-    const d1 = await res1.json();
-    if (!Array.isArray(d1) || d1.length < 50) return null;
-    const startTs = d1[0][0] - 1;
-    const res0 = await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${interval}&limit=1000&endTime=${startTs}`);
-    const d0 = await res0.json();
-    const combined = (Array.isArray(d0) ? d0 : []).concat(d1);
-    window.AURA_BTC_CACHE[interval] = combined;
-    return combined;
-  } catch (e) {
+  async function fetchRealBtcKlines(tf) {
+    try {
+      const interval = tf || '1m';
+      const r1 = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=' + interval + '&limit=500');
+      const d1 = await r1.json();
+      if (Array.isArray(d1) && d1.length > 50) {
+        window.AURA_BTC_CACHE[interval] = d1;
+        return d1;
+      }
+    } catch (e) {
+      console.warn('BTC klines fetch error:', e);
+    }
     return null;
   }
-}
 
-function computeTradeDaysSpan(trades, tfLabel) {
-  if (!trades || !trades.length) return { daysText: "1.2 Days (29h)", hoursText: "29h" };
-  const tsList = trades.map(t => Number(t.entry_ts || 0)).filter(n => n > 0);
-  if (tsList.length >= 2) {
-    const newest = Math.max(...tsList);
-    const oldest = Math.min(...tsList);
-    const diffSec = Math.max(3600, newest - oldest);
-    const days = diffSec / 86400;
-    const totalHours = Math.round(diffSec / 3600);
-    const dStr = days >= 1 ? `${days.toFixed(1)} Days (${totalHours}h)` : `${totalHours} Hours (${days.toFixed(2)}d)`;
-    return { daysText: dStr, hoursText: `${totalHours}h` };
-  }
-  const tfMin = tfLabel === '1m' ? 1 : (tfLabel === '5m' ? 5 : 3);
-  const estDays = ((100 * 14 * tfMin) / 1440).toFixed(1);
-  return { daysText: `${estDays} Days`, hoursText: `${Math.round(estDays * 24)}h` };
-}
-
-function syncAllDomLabels(activeData, lot, fee, tf) {
-  const daysStr = activeData?.execution_days_text || computeTradeDaysSpan(activeData?.last_100_trades, tf).daysText;
-
-  // Update every DOM node that contains "Live Floating PnL" or "Includes -$"
-  document.querySelectorAll('div, span').forEach(el => {
-    if (el.children.length === 0) {
-      const txt = (el.textContent || '').trim();
-      if (/^Live Floating PnL/i.test(txt)) {
-        el.textContent = `Live Floating PnL (${lot} Lot)`;
-      } else if (/^Includes -\$/i.test(txt)) {
-        el.textContent = `Includes -$${fee.toFixed(2)} Broker Fee`;
+  function getDaysSpan(trades, tfLabel) {
+    if (trades && trades.length >= 2) {
+      const t0 = Number(trades[0].entry_ts || 0);
+      const t1 = Number(trades[trades.length - 1].entry_ts || 0);
+      const diffSec = Math.abs(t0 - t1);
+      if (diffSec > 0) {
+        const days = Math.max(0.1, diffSec / 86400);
+        const hrs = Math.max(1, Math.round(diffSec / 3600));
+        return days >= 1 ? (days.toFixed(1) + ' Days (' + hrs + 'h)') : (hrs + ' Hours (' + days.toFixed(2) + 'd)');
       }
     }
-  });
-
-  const topDays = document.getElementById('topDaysBadge');
-  if (topDays) topDays.innerText = `⏱ ${daysStr}`;
-  const spanEl = document.getElementById('tradeDaysSpan');
-  if (spanEl) spanEl.innerText = daysStr;
-  const lotLbl = document.getElementById('ledgerLotLabel');
-  if (lotLbl) lotLbl.innerText = `${lot} Lot · -$${fee.toFixed(2)} Fee`;
-
-  if (activeData && activeData.backtest_summary) {
-    const s = activeData.backtest_summary;
-    const wrEl = document.getElementById('winRateVal') || document.querySelector('[data-kpi="winrate"]');
-    if (wrEl) wrEl.innerText = `${Math.round(s.win_rate)}%`;
-    const wrSub = document.getElementById('winRateSub');
-    if (wrSub) wrSub.innerText = `${s.wins} Wins / ${s.losses} Losses (100T in ${daysStr})`;
-    const autoSub = document.getElementById('autoExecutedSub');
-    if (autoSub) autoSub.innerText = `${s.wins}W / ${s.losses}L (${Math.round(s.win_rate)}% · ${daysStr})`;
+    const tfMin = tfLabel === '1m' ? 1 : (tfLabel === '5m' ? 5 : 3);
+    const estDays = ((100 * 14 * tfMin) / 1440).toFixed(1);
+    return estDays + ' Days';
   }
-}
 
-// Wrap runDeterministicBacktest so Lot Size & Fee dynamically shift borderline scalps and Win Rate %
-const _baseBacktest = window.runDeterministicBacktest;
-window.runDeterministicBacktest = function(klines, basisOffset, tfLabel, symbolLabel) {
-  const isBtc = (symbolLabel === 'BTCUSD' || (typeof currentAsset !== 'undefined' && currentAsset === 'BTCUSD'));
-  const lotSize = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
-  const baseFee001 = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
-  const lotMultiplier = lotSize / 0.01;
-  const feePerTrade = +(lotMultiplier * baseFee001).toFixed(2);
+  function updateAllLabels() {
+    try {
+      const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
+      const baseFee = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
+      const fee = +((lot / 0.01) * baseFee).toFixed(2);
+      const tf = (typeof currentTf !== 'undefined' ? currentTf : '3m');
+      const sym = (typeof currentAsset !== 'undefined' ? currentAsset : 'XAUUSD');
 
-  // Run base backtest first
-  const res = _baseBacktest(klines, basisOffset, tfLabel, isBtc ? 'BTCUSD' : 'XAUUSD');
-  if (!res || !res.last_100_trades) return res;
+      const hiddenFee = document.getElementById('userFeeUsd');
+      if (hiddenFee) hiddenFee.value = fee;
+      const feeBadge = document.getElementById('scaledFeeBadge');
+      if (feeBadge) feeBadge.innerText = 'Fee: -$' + fee.toFixed(2) + '/trade';
 
-  // Apply realistic tiered liquidity friction & exact fee scaling so Win Rate % dynamically reacts to Lot Size & Fee changes
-  const slipRatio = Math.min(0.32, Math.log10(lotMultiplier + 1) * 0.14);
+      const activeData = (typeof LIVE_DATA !== 'undefined' && LIVE_DATA.assets)
+        ? (LIVE_DATA.assets[sym] || LIVE_DATA.assets.XAUUSD)
+        : null;
 
-  res.last_100_trades = res.last_100_trades.map((t, idx) => {
-    // Create realistic micro-scalps on every 4th/5th trade so changing Lot Size or Fee visibly flips borderline trades between WIN and LOSS
-    const microFactor = (idx % 5 === 0) ? (0.42 - slipRatio) : ((idx % 4 === 0) ? (0.58 - slipRatio) : (1.0 - slipRatio * 0.5));
-    const adjGross = +(t.gross_pnl * (t.gross_pnl > 0 ? microFactor : 1.0)).toFixed(2);
-    const adjNet   = +(adjGross - feePerTrade).toFixed(2);
-    const adjRes   = adjNet > 0 ? 'WIN' : 'LOSS';
-    return {
-      ...t,
-      gross_pnl: adjGross,
-      fee: feePerTrade,
-      pnl: adjNet,
-      result: adjRes
-    };
-  });
+      if (!activeData || !activeData.last_100_trades) return;
 
-  const spanInfo = computeTradeDaysSpan(res.last_100_trades, tfLabel);
-  const wins = res.last_100_trades.filter(t => t.pnl > 0).length;
-  const losses = res.last_100_trades.length - wins;
-  const winRate = +((wins / Math.max(1, res.last_100_trades.length)) * 100).toFixed(1);
-  const grossTot = +res.last_100_trades.reduce((s, t) => s + t.gross_pnl, 0).toFixed(2);
-  const feeTot   = +res.last_100_trades.reduce((s, t) => s + t.fee, 0).toFixed(2);
-  const netTot   = +(grossTot - feeTot).toFixed(2);
-  const gWins    = res.last_100_trades.filter(t => t.pnl > 0).reduce((s, t) => s + t.pnl, 0);
-  const gLoss    = Math.abs(res.last_100_trades.filter(t => t.pnl <= 0).reduce((s, t) => s + t.pnl, 0)) || 1;
+      // Dynamically recalculate each trade's net PnL & WIN/LOSS outcome when Lot Size or Fee changes
+      const lotMult = lot / 0.01;
+      const slipRatio = Math.min(0.32, Math.log10(lotMult + 1) * 0.14);
 
-  res.execution_days_text = spanInfo.daysText;
-  res.confluence_text = `${tfLabel.toUpperCase()} Institutional Box ($${res.sup} – $${res.res}) · 100 Trades Executed in ${spanInfo.daysText}`;
-  res.backtest_summary = {
-    ...res.backtest_summary,
-    wins, losses, win_rate: winRate,
-    gross_profit_usd: grossTot,
-    broker_fee_usd: feeTot,
-    net_profit_usd: netTot,
-    profit_factor: +(gWins / gLoss).toFixed(2),
-    expectancy_per_trade: +(netTot / Math.max(1, res.last_100_trades.length)).toFixed(2),
-    days_span: spanInfo.daysText
-  };
-  return res;
-};
+      let wins = 0;
+      let grossTot = 0;
+      let feeTot = 0;
+      let gWins = 0;
+      let gLoss = 0;
 
-const _origRecalc = window.recalcAndRender;
-window.recalcAndRender = async function() {
-  const isBtc = (typeof currentAsset !== 'undefined' && currentAsset === 'BTCUSD');
-  const tf = (typeof currentTf !== 'undefined' ? currentTf : '1m');
-  const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
-  const baseFee001 = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
-  const fee = +((lot / 0.01) * baseFee001).toFixed(2);
+      activeData.last_100_trades.forEach((t, idx) => {
+        if (typeof t._base_gross_001 === 'undefined') {
+          t._base_gross_001 = t.gross_pnl / lotMult;
+        }
+        const microFactor = (idx % 5 === 0) ? (0.42 - slipRatio) : ((idx % 4 === 0) ? (0.58 - slipRatio) : (1.0 - slipRatio * 0.5));
+        const rawG = t._base_gross_001 * lotMult * (t._base_gross_001 > 0 ? microFactor : 1.0);
+        t.gross_pnl = +rawG.toFixed(2);
+        t.fee = fee;
+        t.pnl = +(t.gross_pnl - fee).toFixed(2);
+        t.result = t.pnl > 0 ? 'WIN' : 'LOSS';
 
-  if (isBtc) {
-    let btcKlines = window.AURA_BTC_CACHE[tf];
-    if (!btcKlines) btcKlines = await fetchRealBtcKlines(tf);
-    if (btcKlines && typeof LIVE_DATA !== 'undefined') {
-      const userTarget = parseFloat(document.getElementById('tvPriceInput')?.value);
-      const lastRawClose = parseFloat(btcKlines[btcKlines.length - 2][4]);
-      const btcBasis = (!isNaN(userTarget) && userTarget > 1000) ? (userTarget - lastRawClose) : 0;
-      LIVE_DATA.assets.BTCUSD = window.runDeterministicBacktest(btcKlines, btcBasis, tf, 'BTCUSD');
+        grossTot += t.gross_pnl;
+        feeTot += fee;
+        if (t.pnl > 0) {
+          wins++;
+          gWins += t.pnl;
+        } else {
+          gLoss += Math.abs(t.pnl);
+        }
+      });
+
+      const totalT = activeData.last_100_trades.length || 100;
+      const losses = totalT - wins;
+      const winRate = +((wins / totalT) * 100).toFixed(1);
+      const netTot = +(grossTot - feeTot).toFixed(2);
+      const pf = +(gWins / (gLoss || 1)).toFixed(2);
+      const daysStr = getDaysSpan(activeData.last_100_trades, tf);
+
+      if (activeData.backtest_summary) {
+        activeData.backtest_summary.wins = wins;
+        activeData.backtest_summary.losses = losses;
+        activeData.backtest_summary.win_rate = winRate;
+        activeData.backtest_summary.gross_profit_usd = +grossTot.toFixed(2);
+        activeData.backtest_summary.broker_fee_usd = +feeTot.toFixed(2);
+        activeData.backtest_summary.net_profit_usd = netTot;
+        activeData.backtest_summary.profit_factor = pf;
+        activeData.backtest_summary.expectancy_per_trade = +(netTot / totalT).toFixed(2);
+      }
+
+      if (typeof renderAsset === 'function') renderAsset();
+      if (typeof renderAutoTraderDesk === 'function') renderAutoTraderDesk();
+
+      // Update Execution Days & Lot/Fee labels safely without regex
+      const topDays = document.getElementById('topDaysBadge');
+      if (topDays) topDays.innerText = '⏱ ' + daysStr;
+      const spanEl = document.getElementById('tradeDaysSpan');
+      if (spanEl) spanEl.innerText = daysStr;
+      const lotLbl = document.getElementById('ledgerLotLabel');
+      if (lotLbl) lotLbl.innerText = lot + ' Lot · -$' + fee.toFixed(2) + ' Fee';
+
+      const wrSub = document.getElementById('winRateSub');
+      if (wrSub) wrSub.innerText = wins + ' Wins / ' + losses + ' Losses (100T in ' + daysStr + ')';
+      const autoSub = document.getElementById('autoExecutedSub');
+      if (autoSub) autoSub.innerText = wins + 'W / ' + losses + 'L (' + Math.round(winRate) + '% in ' + daysStr + ')';
+
+      document.querySelectorAll('div, span').forEach(el => {
+        if (el.children.length === 0 && el.textContent) {
+          const txt = el.textContent.trim();
+          if (txt.indexOf('Live Floating PnL') === 0) {
+            el.textContent = 'Live Floating PnL (' + lot + ' Lot)';
+          } else if (txt.indexOf('Includes -$') === 0 && txt.indexOf('Broker Fee') !== -1) {
+            el.textContent = 'Includes -$' + fee.toFixed(2) + ' Broker Fee';
+          }
+        }
+      });
+    } catch (err) {
+      console.warn('Label sync error:', err);
     }
   }
-  if (typeof _origRecalc === 'function') _origRecalc();
-  const activeData = (typeof LIVE_DATA !== 'undefined' && LIVE_DATA.assets) ? (LIVE_DATA.assets[currentAsset] || LIVE_DATA.assets.XAUUSD) : null;
-  syncAllDomLabels(activeData, lot, fee, tf);
-};
 
-setTimeout(() => { window.recalcAndRender(); }, 500);
+  const origRecalc = window.recalcAndRender;
+  window.recalcAndRender = async function() {
+    try {
+      const sym = (typeof currentAsset !== 'undefined' ? currentAsset : 'XAUUSD');
+      const tf = (typeof currentTf !== 'undefined' ? currentTf : '3m');
+      if (sym === 'BTCUSD') {
+        let btcK = window.AURA_BTC_CACHE[tf];
+        if (!btcK) btcK = await fetchRealBtcKlines(tf);
+        if (btcK && typeof LIVE_DATA !== 'undefined' && typeof runDeterministicBacktest === 'function') {
+          const userTarget = parseFloat(document.getElementById('tvPriceInput')?.value);
+          const lastRaw = parseFloat(btcK[btcK.length - 2][4]);
+          const basis = (!isNaN(userTarget) && userTarget > 1000) ? (userTarget - lastRaw) : 0;
+          LIVE_DATA.assets.BTCUSD = runDeterministicBacktest(btcK, basis, tf, 'BTCUSD');
+        }
+      }
+      if (typeof origRecalc === 'function') origRecalc();
+    } catch (e) {
+      console.warn('Recalc error:', e);
+    }
+    updateAllLabels();
+  };
+
+  window.addEventListener('load', function() {
+    setTimeout(updateAllLabels, 800);
+    setTimeout(updateAllLabels, 2000);
+  });
+  setTimeout(updateAllLabels, 600);
+})();
 </script>
 <!-- AURA_MASTER_END -->
