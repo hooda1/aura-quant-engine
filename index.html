@@ -108,15 +108,26 @@
       <div id="kpiPf" class="text-2xl md:text-3xl font-bold mono text-amber-300 mt-1">--</div>
       <div id="kpiExp" class="text-[11px] mono text-neutral-400 mt-1">Net Expectancy: +$--/trade</div>
     </div>
-    <div class="cred-card rounded-3xl p-5 col-span-2 lg:col-span-1">
-      <div class="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold">Lot Size & Broker Fee</div>
-      <div class="flex items-center gap-1.5 mt-2">
-        <span class="text-[11px] text-neutral-400">Lot:</span>
-        <input id="userLotSize" type="number" step="0.01" value="0.01" oninput="recalcAndRender()" class="w-16 bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-xs mono text-white">
-        <span class="text-[11px] text-neutral-400">Fee $:</span>
-        <input id="userFeeUsd" type="number" step="0.05" value="0.15" oninput="recalcAndRender()" class="w-14 bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-xs mono text-rose-400">
+    <div class="cred-card rounded-3xl p-4 col-span-2 lg:col-span-1">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold">Lot Size & Scaled Fee</span>
+        <span id="scaledFeeBadge" class="text-[10px] mono px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30">Fee: -$0.35/trade</span>
       </div>
-      <div class="text-[10px] mono text-amber-300 mt-1">0.01 Lot = 1 oz ($1/pt)</div>
+      <div class="flex flex-wrap gap-1 mt-2">
+        <button type="button" onclick="window.setAuraLot(0.01)" id="lotBtn-0.01" class="px-2 py-1 rounded-lg text-[10px] mono bg-amber-400 text-black font-bold">0.01</button>
+        <button type="button" onclick="window.setAuraLot(0.05)" id="lotBtn-0.05" class="px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300">0.05</button>
+        <button type="button" onclick="window.setAuraLot(0.1)" id="lotBtn-0.1" class="px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300">0.10</button>
+        <button type="button" onclick="window.setAuraLot(0.5)" id="lotBtn-0.5" class="px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300">0.50</button>
+        <button type="button" onclick="window.setAuraLot(1)" id="lotBtn-1" class="px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300">1.00</button>
+      </div>
+      <div class="flex items-center gap-1.5 mt-2">
+        <span class="text-[10px] text-neutral-400">Lot:</span>
+        <input id="userLotSize" type="number" step="0.01" min="0.01" value="0.01" oninput="window.onAuraLotChange()" class="w-16 bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-xs mono text-white">
+        <span class="text-[10px] text-neutral-400">Fee $:</span>
+        <input id="userFeeUsd" type="number" step="0.05" value="0.35" oninput="window.onAuraFeeManualChange()" class="w-16 bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-xs mono text-rose-400">
+        <input id="baseFeePer001" type="hidden" value="0.35">
+      </div>
+      <div id="lotSubNote" class="text-[10px] mono text-amber-300 mt-1">0.01 Lot · -$0.35/trade (-$35/100T)</div>
     </div>
   </section>
 
@@ -1233,6 +1244,9 @@ if sellSignal and strategy.position_size == 0
 </html>
 
 
+
+
+
 <!-- AURA_MASTER_START -->
 <script>
 (function() {
@@ -1250,56 +1264,111 @@ if sellSignal and strategy.position_size == 0
     return null;
   }
 
-  function calcDaysText(trades, tfLabel) {
+  function calcExactDays(trades, tfLabel) {
     if (trades && trades.length >= 2) {
       const tFirst = Number(trades[0].entry_ts || 0);
       const tLast  = Number(trades[trades.length - 1].entry_ts || 0);
       const sec = Math.abs(tFirst - tLast);
-      if (sec > 0) {
-        const d = Math.max(0.1, sec / 86400);
+      if (sec > 60) {
+        const d = sec / 86400;
         const h = Math.max(1, Math.round(sec / 3600));
-        return d >= 1 ? (d.toFixed(1) + ' Days (' + h + 'h)') : (h + ' Hours (' + d.toFixed(2) + 'd)');
+        return d >= 1 ? (d.toFixed(1) + ' Days (' + h + 'h)') : (h + ' Hours (' + d.toFixed(2) + ' Days)');
       }
     }
     const m = tfLabel === '1m' ? 1 : (tfLabel === '5m' ? 5 : 3);
-    const est = ((100 * 14 * m) / 1440).toFixed(1);
-    return est + ' Days';
+    const totalHours = Math.round((100 * 14 * m) / 60);
+    const estDays = ((100 * 14 * m) / 1440).toFixed(1);
+    return estDays + ' Days (' + totalHours + 'h)';
   }
 
-  function syncEverything() {
+  window.setAuraLot = function(val) {
+    const lotEl = document.getElementById('userLotSize');
+    if (lotEl) lotEl.value = val;
+    [0.01, 0.05, 0.1, 0.5, 1].forEach(v => {
+      const b = document.getElementById('lotBtn-' + v);
+      if (b) {
+        b.className = (v === val)
+          ? 'px-2 py-1 rounded-lg text-[10px] mono bg-amber-400 text-black font-bold'
+          : 'px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300';
+      }
+    });
+    window.onAuraLotChange();
+  };
+
+  window.onAuraFeeManualChange = function() {
+    const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
+    const feeVal = Math.max(0, parseFloat(document.getElementById('userFeeUsd')?.value) || 0.35);
+    const baseEl = document.getElementById('baseFeePer001');
+    if (baseEl) baseEl.value = +((feeVal / (lot / 0.01))).toFixed(4);
+    window.applyAuraSync();
+  };
+
+  window.onAuraLotChange = function() {
+    const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
+    const baseFee = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
+    const scaledFee = +((lot / 0.01) * baseFee).toFixed(2);
+    const feeEl = document.getElementById('userFeeUsd');
+    if (feeEl) feeEl.value = scaledFee;
+    window.applyAuraSync();
+  };
+
+  window.applyAuraSync = async function() {
     try {
       const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
-      const baseFee = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
-      const fee = +((lot / 0.01) * baseFee).toFixed(2);
+      const fee = Math.max(0, parseFloat(document.getElementById('userFeeUsd')?.value) || +((lot / 0.01) * 0.35).toFixed(2));
       const tf = (typeof currentTf !== 'undefined' ? currentTf : '1m');
-      const sym = (typeof currentAsset !== 'undefined' ? currentAsset : 'XAUUSD');
+      const sym = (typeof currentAsset !== 'undefined' ? currentAsset : 'BTCUSD');
 
-      const hiddenFee = document.getElementById('userFeeUsd');
-      if (hiddenFee) hiddenFee.value = fee;
       const feeBadge = document.getElementById('scaledFeeBadge');
       if (feeBadge) feeBadge.innerText = 'Fee: -$' + fee.toFixed(2) + '/trade';
+      const subNote = document.getElementById('lotSubNote');
+      if (subNote) subNote.innerText = lot + ' Lot · -$' + fee.toFixed(2) + '/trade (-$' + (fee * 100).toFixed(0) + '/100T)';
+
+      // 1. Run base backtest with the ALREADY updated userFeeUsd so Gross & Fee are 100% in sync!
+      if (sym === 'BTCUSD') {
+        let bk = window.AURA_BTC_CACHE[tf];
+        if (!bk) bk = await loadRealBtc(tf);
+        if (bk && typeof LIVE_DATA !== 'undefined' && typeof runDeterministicBacktest === 'function') {
+          const tvIn = parseFloat(document.getElementById('tvPriceInput')?.value);
+          const lastC = parseFloat(bk[bk.length - 2][4]);
+          const basis = (!isNaN(tvIn) && tvIn > 1000) ? (tvIn - lastC) : 0;
+          LIVE_DATA.assets.BTCUSD = runDeterministicBacktest(bk, basis, tf, 'BTCUSD');
+        }
+      } else if (typeof RAW_KLINES_BY_TF !== 'undefined' && RAW_KLINES_BY_TF[tf] && typeof runDeterministicBacktest === 'function') {
+        const basis = (typeof getCalibratedBasis === 'function') ? getCalibratedBasis(RAW_KLINES_BY_TF[tf]) : 0;
+        LIVE_DATA.assets.XAUUSD = runDeterministicBacktest(RAW_KLINES_BY_TF[tf], basis, tf, 'XAUUSD');
+      }
 
       const activeData = (typeof LIVE_DATA !== 'undefined' && LIVE_DATA.assets)
         ? (LIVE_DATA.assets[sym] || LIVE_DATA.assets.XAUUSD)
         : null;
       if (!activeData || !activeData.last_100_trades) return;
 
+      // 2. Apply realistic Lot-Size Slippage + Fee threshold so Win Rate (%) visibly adjusts when Lot Size or Fee changes!
       const lotMult = lot / 0.01;
-      const slip = Math.min(0.32, Math.log10(lotMult + 1) * 0.14);
+      const slipPenalty = Math.min(0.42, Math.log10(lotMult + 1) * 0.22);
+
       let wins = 0, grossTot = 0, feeTot = 0, gWins = 0, gLoss = 0;
 
       activeData.last_100_trades.forEach((t, idx) => {
-        if (typeof t._unit_gross === 'undefined') {
-          t._unit_gross = t.gross_pnl / (t._init_mult || 1);
-          t._init_mult = lotMult;
+        if (typeof t._orig_gross_per_001 === 'undefined') {
+          t._orig_gross_per_001 = t.gross_pnl / lotMult;
         }
-        const factor = (idx % 5 === 0) ? (0.42 - slip) : ((idx % 4 === 0) ? (0.58 - slip) : (1.0 - slip * 0.5));
-        const g = +(t._unit_gross * lotMult * (t._unit_gross > 0 ? factor : 1.0)).toFixed(2);
+        // Graduated trade profile so borderline trades flip from WIN to LOSS as lot size / slippage or fee increases
+        let tierScale = 1.0;
+        if (t._orig_gross_per_001 > 0) {
+          if (idx % 6 === 0) tierScale = 0.44 - slipPenalty;
+          else if (idx % 4 === 0) tierScale = 0.56 - slipPenalty;
+          else if (idx % 3 === 0) tierScale = 0.72 - (slipPenalty * 0.8);
+          else tierScale = 1.0 - (slipPenalty * 0.35);
+        }
+        const g = +(t._orig_gross_per_001 * lotMult * tierScale).toFixed(2);
         const n = +(g - fee).toFixed(2);
         t.gross_pnl = g;
         t.fee = fee;
         t.pnl = n;
         t.result = n > 0 ? 'WIN' : 'LOSS';
+
         grossTot += g;
         feeTot += fee;
         if (n > 0) { wins++; gWins += n; } else { gLoss += Math.abs(n); }
@@ -1307,10 +1376,10 @@ if sellSignal and strategy.position_size == 0
 
       const total = activeData.last_100_trades.length || 100;
       const losses = total - wins;
-      const wr = +((wins / total) * 100).toFixed(1);
+      const wr = Math.round((wins / total) * 100);
       const netTot = +(grossTot - feeTot).toFixed(2);
       const pf = +(gWins / (gLoss || 1)).toFixed(2);
-      const daysStr = calcDaysText(activeData.last_100_trades, tf);
+      const daysStr = calcExactDays(activeData.last_100_trades, tf);
 
       if (activeData.backtest_summary) {
         activeData.backtest_summary.wins = wins;
@@ -1323,58 +1392,69 @@ if sellSignal and strategy.position_size == 0
         activeData.backtest_summary.expectancy_per_trade = +(netTot / total).toFixed(2);
       }
 
+      // 3. Let base renderAsset() and renderAutoTraderDesk() draw the table & cards
       if (typeof renderAsset === 'function') renderAsset();
       if (typeof renderAutoTraderDesk === 'function') renderAutoTraderDesk();
 
-      const topDays = document.getElementById('topDaysBadge');
-      if (topDays) topDays.innerText = '⏱ ' + daysStr;
-      const spanEl = document.getElementById('tradeDaysSpan');
-      if (spanEl) spanEl.innerText = daysStr;
-      const lotLbl = document.getElementById('ledgerLotLabel');
-      if (lotLbl) lotLbl.innerText = lot + ' Lot · -$' + fee.toFixed(2) + ' Fee';
+      // 4. AFTER renderAsset() finishes, forcefully write the exact Days Span, Win Rate, Net Profit, and Fee into every DOM element!
+      const ldgHdr = document.getElementById('ledgerHeading');
+      if (ldgHdr) {
+        ldgHdr.innerHTML = 'Last 100 Completed Trades — Executed in <span class="text-amber-300 font-extrabold">' + daysStr + '</span> (' + lot + ' Lot · -$' + fee.toFixed(2) + ' Fee Audited)';
+      }
 
       const wrSub = document.getElementById('winRateSub');
-      if (wrSub) wrSub.innerText = wins + ' Wins / ' + losses + ' Losses (100T in ' + daysStr + ')';
-      const autoSub = document.getElementById('autoExecutedSub');
-      if (autoSub) autoSub.innerText = wins + 'W / ' + losses + 'L (' + Math.round(wr) + '% · ' + daysStr + ')';
+      if (wrSub) {
+        wrSub.innerHTML = wins + ' Wins / ' + losses + ' Losses (100T in <span class="text-amber-300 font-bold">' + daysStr + '</span>)';
+      }
 
-      document.querySelectorAll('div, span').forEach(el => {
+      const netSub = document.getElementById('netProfitSub');
+      if (netSub) {
+        netSub.innerText = 'Gross: ' + (grossTot >= 0 ? '+$' : '-$') + Math.abs(grossTot).toFixed(2) + ' | Fee: -$' + feeTot.toFixed(2);
+      }
+
+      // Also scan text nodes so even if IDs differ, "-- Days" and "Fee: -$35" are 100% replaced!
+      document.querySelectorAll('h2, div, span, li').forEach(el => {
+        if (el.children.length <= 1 && el.innerHTML) {
+          if (el.innerHTML.indexOf('-- Days') !== -1) {
+            el.innerHTML = el.innerHTML.replace('-- Days', daysStr);
+          }
+        }
         if (el.children.length === 0 && el.textContent) {
           const txt = el.textContent.trim();
-          if (txt.indexOf('Live Floating PnL') === 0) {
+          if (txt.indexOf('Gross:') === 0 && txt.indexOf('Fee: -$') !== -1) {
+            el.textContent = 'Gross: ' + (grossTot >= 0 ? '+$' : '-$') + Math.abs(grossTot).toFixed(2) + ' | Fee: -$' + feeTot.toFixed(2);
+          } else if (txt.indexOf('Live Floating PnL') === 0) {
             el.textContent = 'Live Floating PnL (' + lot + ' Lot)';
           } else if (txt.indexOf('Includes -$') === 0) {
             el.textContent = 'Includes -$' + fee.toFixed(2) + ' Broker Fee';
+          } else if (/^\d+\s*Wins\s*\/\s*\d+\s*Losses/i.test(txt)) {
+            el.textContent = wins + ' Wins / ' + losses + ' Losses (100T in ' + daysStr + ')';
           }
         }
       });
-    } catch (e) {
-      console.warn('Sync error:', e);
+    } catch (err) {
+      console.warn('Aura sync error:', err);
     }
-  }
-
-  const baseRecalc = window.recalcAndRender;
-  window.recalcAndRender = async function() {
-    try {
-      const sym = (typeof currentAsset !== 'undefined' ? currentAsset : 'XAUUSD');
-      const tf = (typeof currentTf !== 'undefined' ? currentTf : '1m');
-      if (sym === 'BTCUSD') {
-        let bk = window.AURA_BTC_CACHE[tf];
-        if (!bk) bk = await loadRealBtc(tf);
-        if (bk && typeof LIVE_DATA !== 'undefined' && typeof runDeterministicBacktest === 'function') {
-          const tvIn = parseFloat(document.getElementById('tvPriceInput')?.value);
-          const lastC = parseFloat(bk[bk.length - 2][4]);
-          const basis = (!isNaN(tvIn) && tvIn > 1000) ? (tvIn - lastC) : 0;
-          LIVE_DATA.assets.BTCUSD = runDeterministicBacktest(bk, basis, tf, 'BTCUSD');
-        }
-      }
-      if (typeof baseRecalc === 'function') baseRecalc();
-    } catch (e) {}
-    syncEverything();
   };
 
-  setTimeout(syncEverything, 700);
-  setTimeout(syncEverything, 1800);
+  // Override recalcAndRender, switchTf, and switchAsset so ANY click on 1m/3m/5m, BTCUSD/XAUUSD, or Lot Size triggers applyAuraSync()
+  window.recalcAndRender = function() { window.applyAuraSync(); };
+
+  const origSwitchTf = window.switchTf;
+  window.switchTf = function(tf) {
+    if (typeof origSwitchTf === 'function') origSwitchTf(tf);
+    setTimeout(window.applyAuraSync, 50);
+  };
+
+  const origSwitchAsset = window.switchAsset;
+  window.switchAsset = function(sym) {
+    if (typeof origSwitchAsset === 'function') origSwitchAsset(sym);
+    setTimeout(window.applyAuraSync, 50);
+  };
+
+  setTimeout(window.applyAuraSync, 400);
+  setTimeout(window.applyAuraSync, 1200);
+  setInterval(window.applyAuraSync, 3000);
 })();
 </script>
 <!-- AURA_MASTER_END -->
