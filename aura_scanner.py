@@ -15,7 +15,7 @@ def load_env_token():
 TG_BOT_TOKEN = load_env_token()
 TG_CHAT_ID   = "8883380313"
 XAU_BASIS    = 6.55
-BROKER_FEE   = 0.15
+BROKER_FEE   = 0.35
 
 def send_telegram(text):
     try:
@@ -156,7 +156,7 @@ def main():
                             send_telegram(
                                 f"🎯 <b>AUTO-TRADE TP1 HIT ({tf.upper()} XAUUSD BUY)</b>\n"
                                 f"• Live Price: <b>${p}</b> (TP1 Target: ${ot['tp1']})\n"
-                                f"• 0.01 Lot Net Profit Locked: <b>+${ot['net_tp1']}</b> (after -$0.15 fee)\n"
+                                f"• 0.01 Lot Net Profit Locked: <b>+${ot['net_tp1']}</b> (after -$0.35 fee)\n"
                                 f"• Action: 50% closed; Runner SL moved to Break-Even (${ot['entry']}) targeting TP2 (${ot['tp2']})!"
                             )
                         elif ot.get("tp1_hit") and p >= ot["tp2"]:
@@ -178,7 +178,7 @@ def main():
                             send_telegram(
                                 f"🎯 <b>AUTO-TRADE TP1 HIT ({tf.upper()} XAUUSD SELL)</b>\n"
                                 f"• Live Price: <b>${p}</b> (TP1 Target: ${ot['tp1']})\n"
-                                f"• 0.01 Lot Net Profit Locked: <b>+${ot['net_tp1']}</b> (after -$0.15 fee)\n"
+                                f"• 0.01 Lot Net Profit Locked: <b>+${ot['net_tp1']}</b> (after -$0.35 fee)\n"
                                 f"• Action: 50% closed; Runner SL moved to Break-Even (${ot['entry']}) targeting TP2 (${ot['tp2']})!"
                             )
                         elif ot.get("tp1_hit") and p <= ot["tp2"]:
@@ -207,7 +207,7 @@ def main():
                         f"• <b>Stop-Loss:</b> ${sig['sl']} (Net Risk: -${sig['net_sl']})\n"
                         f"• <b>TP1 (Auto-BE):</b> ${sig['tp1']} (Net Profit: +${sig['net_tp1']})\n"
                         f"• <b>TP2 (Runner):</b> ${sig['tp2']} (Net Profit: +${sig['net_tp2']})\n"
-                        f"• <b>Broker Fee Deducted:</b> -$0.15\n"
+                        f"• <b>Broker Fee Deducted:</b> -$0.35\n"
                         f"<i>Tracking live ticks now for automatic TP1 / TP2 / SL intimation...</i>"
                     )
 

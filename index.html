@@ -172,15 +172,25 @@
       <div id="kpiPf" class="text-2xl md:text-3xl font-bold mono text-amber-300 mt-1">--</div>
       <div id="kpiExp" class="text-[11px] mono text-neutral-400 mt-1">Net Expectancy: +$--/trade</div>
     </div>
-    <div class="cred-card rounded-3xl p-5 col-span-2 lg:col-span-1">
-      <div class="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold">Lot Size & Broker Fee</div>
-      <div class="flex items-center gap-1.5 mt-2">
-        <span class="text-[11px] text-neutral-400">Lot:</span>
-        <input id="userLotSize" type="number" step="0.01" value="0.01" oninput="recalcAndRender()" class="w-16 bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-xs mono text-white">
-        <span class="text-[11px] text-neutral-400">Fee $:</span>
-        <input id="userFeeUsd" type="number" step="0.05" value="0.15" oninput="recalcAndRender()" class="w-14 bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-xs mono text-rose-400">
+    <div class="cred-card rounded-3xl p-4 col-span-2 lg:col-span-1">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold">Lot Size & Scaled Fee</span>
+        <span id="scaledFeeBadge" class="text-[10px] mono px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30">Fee: -$0.35/trade</span>
       </div>
-      <div class="text-[10px] mono text-amber-300 mt-1">0.01 Lot = 1 oz ($1/pt)</div>
+      <div class="flex flex-wrap gap-1 mt-2">
+        <button onclick="setQuickLot(0.01)" id="lotBtn-0.01" class="px-2 py-1 rounded-lg text-[10px] mono bg-amber-400 text-black font-bold">0.01</button>
+        <button onclick="setQuickLot(0.05)" id="lotBtn-0.05" class="px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300">0.05</button>
+        <button onclick="setQuickLot(0.1)" id="lotBtn-0.1" class="px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300">0.10</button>
+        <button onclick="setQuickLot(0.5)" id="lotBtn-0.5" class="px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300">0.50</button>
+        <button onclick="setQuickLot(1)" id="lotBtn-1" class="px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300">1.00</button>
+      </div>
+      <div class="flex items-center gap-1.5 mt-2">
+        <span class="text-[10px] text-neutral-400">Custom Lot:</span>
+        <input id="userLotSize" type="number" step="0.01" min="0.01" value="0.01" oninput="onLotInputChange()" class="w-16 bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-xs mono text-white">
+        <span class="text-[10px] text-neutral-400">Base/0.01:</span>
+        <input id="baseFeePer001" type="number" step="0.05" value="0.35" oninput="onLotInputChange()" class="w-14 bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-xs mono text-rose-400">
+        <input id="userFeeUsd" type="hidden" value="0.35">
+      </div>
     </div>
   </section>
 
@@ -472,7 +482,7 @@
     function updateDynamicPineScript() {
       const tfNum = currentTf.replace('m', '');
       const lot = parseFloat(document.getElementById('userLotSize')?.value) || 0.01;
-      const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.15;
+      const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.35;
 
       // 100% FLAT ZERO-INDENTATION PINE SCRIPT (Immune to TradingView mobile staircase paste bug!)
       const script = [
@@ -536,7 +546,7 @@
       if (!d) return;
       const lv = d.live;
       const lot = parseFloat(document.getElementById('userLotSize')?.value) || 0.01;
-      const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.15;
+      const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.35;
 
       document.getElementById('connectedTvUser').innerText = `${AUTO_TRADER.tvUser} (Synced)`;
       document.getElementById('autoSyncTfBadge').innerText = `Synced to: ${currentAsset} · ${currentTf.toUpperCase()} Timeframe`;
@@ -722,7 +732,7 @@
       if (!d) return;
       const lv = d.live;
       const lot = parseFloat(document.getElementById('userLotSize')?.value) || 0.01;
-      const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.15;
+      const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.35;
       const [p1, p2] = d.pending_orders;
       const chosen = (forcedSide === 'BUY') ? p1 : p2;
 
@@ -836,7 +846,7 @@
       const d = getActiveModel();
       if (!d) return 'AURA Loading...';
       const lot = parseFloat(document.getElementById('userLotSize').value) || 0.01;
-      const fee = parseFloat(document.getElementById('userFeeUsd').value) || 0.15;
+      const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.35;
       const prev5 = d.last_100_trades.slice(0, 5).map(t =>
         `• ${t.id} (${t.side} @ $${t.entry} → $${t.exit}): ${t.result} | Gross: ${t.gross_pnl >= 0 ? '+$' : '-$'}${Math.abs(t.gross_pnl)} | Fee: -$${t.fee} | Net: ${t.pnl >= 0 ? '+$' : '-$'}${Math.abs(t.pnl)}`
       ).join('\n');
@@ -994,8 +1004,13 @@
       if (!rawKlines || rawKlines.length < 100) return null;
       const closedKlines = rawKlines.slice(0, -1);
       const basis = BASIS_OFFSETS[symbolLabel] || 0;
-      const lotSize = parseFloat(document.getElementById('userLotSize')?.value) || 0.01;
-      const feePerTrade = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.15;
+      const lotSize = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
+      const baseFee001 = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
+      const feePerTrade = +((lotSize / 0.01) * baseFee001).toFixed(2);
+      const hiddenFee = document.getElementById('userFeeUsd');
+      if (hiddenFee) hiddenFee.value = feePerTrade;
+      const feeBadge = document.getElementById('scaledFeeBadge');
+      if (feeBadge) feeBadge.innerText = `Fee: -$${feePerTrade.toFixed(2)}/trade`;
       const contractUnits = (symbolLabel === 'XAUUSD') ? (lotSize * 100) : lotSize;
 
       const times  = closedKlines.map(k => +k[0]);
@@ -1267,6 +1282,33 @@
       });
     }
 
+    
+    function setQuickLot(val) {
+      const inp = document.getElementById('userLotSize');
+      if (inp) inp.value = val;
+      [0.01, 0.05, 0.1, 0.5, 1].forEach(v => {
+        const b = document.getElementById('lotBtn-' + v);
+        if (b) {
+          b.className = (v === val)
+            ? 'px-2 py-1 rounded-lg text-[10px] mono bg-amber-400 text-black font-bold'
+            : 'px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300';
+        }
+      });
+      onLotInputChange();
+    }
+
+    function onLotInputChange() {
+      const lotSize = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
+      const baseFee001 = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
+      const scaledFee = +((lotSize / 0.01) * baseFee001).toFixed(2);
+      const hiddenFee = document.getElementById('userFeeUsd');
+      if (hiddenFee) hiddenFee.value = scaledFee;
+      const feeBadge = document.getElementById('scaledFeeBadge');
+      if (feeBadge) feeBadge.innerText = `Fee: -$${scaledFee.toFixed(2)}/trade`;
+      updateDynamicPineScript();
+      recalcAndRender();
+    }
+
     function recalcAndRender() {
       computeAllModels();
       renderAsset();
@@ -1431,7 +1473,7 @@
       if (!d) return;
       const lv = d.live;
       const lot = parseFloat(document.getElementById('userLotSize')?.value) || 0.01;
-      const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.15;
+      const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.35;
       const shouldBlurVip = (currentAsset === 'XAUUSD' && currentEngine === 'VIP_DOT' && !isVipUnlocked());
 
       document.getElementById('kpiPrice').innerText = `$${lv.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -1550,7 +1592,7 @@
       const q = (preset || document.getElementById('aiQuery').value || '').trim();
       const ql = q.toLowerCase(), trades = d.last_100_trades;
       const lot = parseFloat(document.getElementById('userLotSize')?.value) || 0.01;
-      const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.15;
+      const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.35;
       let reply = '';
 
       for (const t of trades) {
