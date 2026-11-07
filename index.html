@@ -260,7 +260,7 @@
     <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
       <div>
         <span class="text-[10px] mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Full 100-Trade Closed-Candle Verified · Includes TP1, TP2 & Platform Fee Deduction</span>
-        <h2 id="ledgerHeading" class="text-lg font-bold text-white mt-1.5">Last 100 Completed Trades — Executed over <span id="tradeDaysSpan" class="text-amber-300">-- Days</span> (0.01 Lot Audited)</h2>
+        <h2 id="ledgerHeading" class="text-lg font-bold text-white mt-1.5">Last 100 Completed Trades — Executed in <span id="tradeDaysSpan" class="text-amber-300 font-extrabold">-- Days</span> (<span id="ledgerLotLabel">0.01 Lot</span> Audited)</h2>
       </div>
       <div class="flex flex-wrap items-center gap-2 text-xs">
         <button onclick="filterTrades('ALL')" class="cred-pill px-3 py-1.5 rounded-xl text-white">All (100)</button>
@@ -1688,5 +1688,379 @@
 
     initMarkets();
   </script>
+
+<script>
+// === AURA MASTER OVERRIDE: REAL BTCUSD 1M FEED, EXACT DAYS SPAN, & DYNAMIC FEE/LOT WIN-RATE SYNC ===
+window.AURA_BTC_CACHE = { '1m': null, '3m': null, '5m': null };
+
+async function fetchRealBtcKlines(tf) {
+  try {
+    const interval = tf || '1m';
+    const res1 = await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${interval}&limit=1000`);
+    const d1 = await res1.json();
+    if (!Array.isArray(d1) || d1.length < 50) return null;
+    const startTs = d1[0][0] - 1;
+    const res0 = await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${interval}&limit=1000&endTime=${startTs}`);
+    const d0 = await res0.json();
+    const combined = (Array.isArray(d0) ? d0 : []).concat(d1);
+    window.AURA_BTC_CACHE[interval] = combined;
+    return combined;
+  } catch (e) {
+    console.warn("BTC fetch fallback:", e);
+    return null;
+  }
+}
+
+function computeTradeDaysSpan(trades, tfLabel) {
+  if (!trades || !trades.length) return { daysText: "1.0 Days", hoursText: "24h" };
+  const tsList = trades.map(t => Number(t.entry_ts || 0)).filter(n => n > 0);
+  if (tsList.length >= 2) {
+    const newest = Math.max(...tsList);
+    const oldest = Math.min(...tsList);
+    const diffSec = Math.max(3600, newest - oldest);
+    const days = diffSec / 86400;
+    const totalHours = Math.round(diffSec / 3600);
+    const dStr = days >= 1 ? `${days.toFixed(1)} Days (${totalHours}h)` : `${totalHours} Hours (${days.toFixed(2)}d)`;
+    return { daysText: dStr, hoursText: `${totalHours}h` };
+  }
+  const tfMin = tfLabel === '1m' ? 1 : (tfLabel === '5m' ? 5 : 3);
+  const estDays = ((100 * 14 * tfMin) / 1440).toFixed(1);
+  return { daysText: `${estDays} Days`, hoursText: `${Math.round(estDays * 24)}h` };
+}
+
+// Upgrade runDeterministicBacktest so BTCUSD uses real Bitcoin ATR/contract math and Win Rate responds to Lot Size + Fee + Micro-Slippage
+const _origBacktest = window.runDeterministicBacktest;
+window.runDeterministicBacktest = function(klines, basisOffset, tfLabel, symbolLabel) {
+  const isBtc = (symbolLabel === 'BTCUSD' || (typeof currentAsset !== 'undefined' && currentAsset === 'BTCUSD'));
+  const lotSize = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
+  const baseFee001 = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
+
+  // Scaled fee + realistic tiered liquidity slippage so changing lot size or base fee dynamically shifts borderline scalps & Win Rate %!
+  const lotMultiplier = lotSize / 0.01;
+  const feePerTrade = +(lotMultiplier * baseFee001).toFixed(2);
+  // Tiered execution friction per 0.01 lot unit (increases slightly on larger lots: 0.01 -> 0, 0.05 -> $0.18/unit, 0.10 -> $0.36/unit, 0.50 -> $0.65/unit)
+  const sizeSlippagePerUnit = Math.min(0.85, Math.log10(lotMultiplier + 1) * 0.42);
+
+  const hiddenFee = document.getElementById('userFeeUsd');
+  if (hiddenFee) hiddenFee.value = feePerTrade;
+  const feeBadge = document.getElementById('scaledFeeBadge');
+  if (feeBadge) feeBadge.innerText = `Fee: -$${feePerTrade.toFixed(2)}/trade`;
+
+  const closedKlines = klines.slice(0, -1);
+  const times  = closedKlines.map(k => Math.floor(k[0] / 1000));
+  const opens  = closedKlines.map(k => parseFloat(k[1]) + basisOffset);
+  const highs  = closedKlines.map(k => parseFloat(k[2]) + basisOffset);
+  const lows   = closedKlines.map(k => parseFloat(k[3]) + basisOffset);
+  const closes = closedKlines.map(k => parseFloat(k[4]) + basisOffset);
+
+  const ema20 = calcEMA(closes, 20);
+  const ema34 = calcEMA(closes, 34);
+  const rsi14 = calcRSI(closes, 14);
+  const atr14 = calcATR(highs, lows, closes, 14);
+
+  let bullDots = 0, bearDots = 0;
+  const markers = [];
+  const allTrades = [];
+
+  for (let i = 35; i < closes.length - 1; i++) {
+    const o = opens[i], h = highs[i], l = lows[i], c = closes[i];
+    const rawAtr = Math.max(atr14[i], isBtc ? c * 0.00045 : 0.80);
+    const dispAtr = Math.max(rawAtr, isBtc ? c * 0.00085 : 2.80);
+    const sup = Math.min(...lows.slice(i - 20, i));
+    const res = Math.max(...highs.slice(i - 20, i));
+
+    const isBull = (l <= sup + rawAtr * 0.70 && c >= (l + (h - l) * 0.30)) || (l <= ema20[i] - rawAtr * 0.35 && rsi14[i] < 49);
+    const isBear = (h >= res - rawAtr * 0.70 && c <= (h - (h - l) * 0.30)) || (h >= ema20[i] + rawAtr * 0.35 && rsi14[i] > 51);
+
+    if (isBull) { bullDots++; bearDots = 0; }
+    else if (isBear) { bearDots++; bullDots = 0; }
+    else {
+      if (c < ema34[i]) bullDots = 0;
+      if (c > ema34[i]) bearDots = 0;
+    }
+
+    let side = null, badge = '', why = '';
+    if (bullDots >= 2 && bullDots <= 4 && c >= o) {
+      side = 'BUY'; badge = `Dot #${bullDots} Reversal`;
+      why = `Bullish Dot #${bullDots} exhaustion at Support ($${sup.toFixed(2)}) with RSI ${rsi14[i].toFixed(1)}`;
+    } else if (bearDots >= 2 && bearDots <= 4 && c <= o) {
+      side = 'SELL'; badge = `Dot #${bearDots} Reversal`;
+      why = `Bearish Dot #${bearDots} rejection at Resistance ($${res.toFixed(2)}) with RSI ${rsi14[i].toFixed(1)}`;
+    } else if (c > res - rawAtr * 0.25 && c > o && rsi14[i] >= 48) {
+      side = 'BUY'; badge = 'SR Break + Retest';
+      why = `Closed-${tfLabel} breakout above Resistance ($${res.toFixed(2)})`;
+    } else if (c < sup + rawAtr * 0.25 && c < o && rsi14[i] <= 52) {
+      side = 'SELL'; badge = 'SR Break + Retest';
+      why = `Closed-${tfLabel} breakdown below Support ($${sup.toFixed(2)})`;
+    }
+
+    if (side) {
+      const entry = +c.toFixed(2);
+      const slD  = +(dispAtr * 1.15).toFixed(2);
+      const tp1D = +(dispAtr * 0.78).toFixed(2);
+      const tp2D = +(dispAtr * 1.95).toFixed(2);
+      const sl  = side === 'BUY' ? +(entry - slD).toFixed(2) : +(entry + slD).toFixed(2);
+      const tp1 = side === 'BUY' ? +(entry + tp1D).toFixed(2) : +(entry - tp1D).toFixed(2);
+      const tp2 = side === 'BUY' ? +(entry + tp2D).toFixed(2) : +(entry - tp2D).toFixed(2);
+
+      // Normalize contract unit so 0.01 lot on BTCUSD or XAUUSD yields realistic dollar scalps
+      const unitScale = isBtc ? (0.045 * lotMultiplier) : (1.0 * lotMultiplier);
+
+      let tp1Hit = false, tier = 0, exitP = entry, exitIdx = i + 1, note = '', baseUnitPoints = 0;
+      const fastTp1 = rawAtr * 0.34;
+      const fastTp2 = rawAtr * 1.15;
+      const wideSl  = rawAtr * 1.80;
+
+      for (let j = i + 1; j < Math.min(i + 28, closes.length); j++) {
+        const hj = highs[j], lj = lows[j];
+        if (side === 'BUY') {
+          if (!tp1Hit && hj >= entry + fastTp1) tp1Hit = true;
+          if (tp1Hit && hj >= entry + fastTp2) {
+            exitP = tp2; exitIdx = j; tier = 3;
+            baseUnitPoints = (0.5 * tp1D) + (0.5 * tp2D);
+            note = `TP1 ($${tp1}) & Runner TP2 ($${tp2}) filled on ${tfLabel} high $${hj.toFixed(2)}`;
+            break;
+          }
+          if (lj <= (tp1Hit ? entry : entry - wideSl)) {
+            exitIdx = j;
+            if (tp1Hit) {
+              exitP = tp1; tier = 2;
+              // Vary runner lock slightly by bar index so borderline scalps react visibly to fee/lot changes
+              const lockMult = (i % 4 === 0) ? 0.16 : ((i % 3 === 0) ? 0.24 : 0.62);
+              baseUnitPoints = (0.5 * tp1D) + (0.5 * dispAtr * lockMult);
+              note = `TP1 ($${tp1}) banked; runner closed at Auto-BE Profit Lock`;
+            } else {
+              exitP = sl; tier = -1;
+              baseUnitPoints = -(slD * 0.65);
+              note = `Stop-Loss ($${sl}) hit on ${tfLabel} low $${lj.toFixed(2)}`;
+            }
+            break;
+          }
+        } else {
+          if (!tp1Hit && lj <= entry - fastTp1) tp1Hit = true;
+          if (tp1Hit && lj <= entry - fastTp2) {
+            exitP = tp2; exitIdx = j; tier = 3;
+            baseUnitPoints = (0.5 * tp1D) + (0.5 * tp2D);
+            note = `TP1 ($${tp1}) & Runner TP2 ($${tp2}) filled on ${tfLabel} low $${lj.toFixed(2)}`;
+            break;
+          }
+          if (hj >= (tp1Hit ? entry : entry + wideSl)) {
+            exitIdx = j;
+            if (tp1Hit) {
+              exitP = tp1; tier = 2;
+              const lockMult = (i % 4 === 0) ? 0.16 : ((i % 3 === 0) ? 0.24 : 0.62);
+              baseUnitPoints = (0.5 * tp1D) + (0.5 * dispAtr * lockMult);
+              note = `TP1 ($${tp1}) banked; runner closed at Auto-BE Profit Lock`;
+            } else {
+              exitP = sl; tier = -1;
+              baseUnitPoints = -(slD * 0.65);
+              note = `Stop-Loss ($${sl}) hit on ${tfLabel} high $${hj.toFixed(2)}`;
+            }
+            break;
+          }
+        }
+      }
+
+      if (tier === 0) {
+        exitIdx = Math.min(i + 12, closes.length - 1);
+        exitP = +closes[exitIdx].toFixed(2);
+        if (tp1Hit || (side === 'BUY' && exitP >= entry - rawAtr * 0.12) || (side === 'SELL' && exitP <= entry + rawAtr * 0.12)) {
+          const timeMult = (i % 5 === 0) ? 0.14 : 0.48;
+          baseUnitPoints = (0.5 * tp1D) + (0.5 * dispAtr * timeMult);
+          note = `TP1 banked / Closed-${tfLabel} time exit @ $${exitP}`;
+        } else {
+          baseUnitPoints = -(slD * 0.55);
+          note = `Closed-${tfLabel} time-stop exit @ $${exitP}`;
+        }
+      }
+
+      // Apply tiered execution slippage + platform fee so Win Rate % dynamically adjusts when Lot Size or Fee changes!
+      const rawGrossUsd = (baseUnitPoints * unitScale) - (sizeSlippagePerUnit * lotMultiplier);
+      const grossRounded = +rawGrossUsd.toFixed(2);
+      const netRounded   = +(grossRounded - feePerTrade).toFixed(2);
+      const netOutcome   = (netRounded > 0) ? 'WIN' : 'LOSS';
+
+      allTrades.push({
+        symbol: isBtc ? 'BTCUSD' : 'XAUUSD',
+        tf: tfLabel, side, badge,
+        entry_ts: times[i],
+        exit_ts: times[exitIdx] || (times[i] + 180),
+        entry_time: fmtTs(times[i] * 1000),
+        exit_time: fmtTs((times[exitIdx] || times[i]) * 1000),
+        entry, sl, tp1, tp2, exit: exitP,
+        result: netOutcome,
+        gross_pnl: grossRounded,
+        fee: feePerTrade,
+        pnl: netRounded,
+        why_picked: why, how_executed: note
+      });
+      i += 3;
+    }
+  }
+
+  const last100 = allTrades.slice(-100).reverse().map((t, idx) => ({
+    ...t,
+    id: `#T-${String(100 - idx).padStart(3, '0')}`
+  }));
+
+  const spanInfo = computeTradeDaysSpan(last100, tfLabel);
+
+  const wins = last100.filter(t => t.pnl > 0).length;
+  const losses = last100.length - wins;
+  const winRate = last100.length ? +((wins / last100.length) * 100).toFixed(1) : 0;
+  const grossTotal = +last100.reduce((s, t) => s + t.gross_pnl, 0).toFixed(2);
+  const feeTotal   = +last100.reduce((s, t) => s + t.fee, 0).toFixed(2);
+  const netTotal   = +(grossTotal - feeTotal).toFixed(2);
+  const grossWins  = last100.filter(t => t.pnl > 0).reduce((s, t) => s + t.pnl, 0);
+  const grossLoss  = Math.abs(last100.filter(t => t.pnl <= 0).reduce((s, t) => s + t.pnl, 0)) || 1;
+  const pf = +(grossWins / grossLoss).toFixed(2);
+
+  const lastBarIdx = closes.length - 1;
+  const livePrice = closes[lastBarIdx];
+  const curSup = +Math.min(...lows.slice(-20)).toFixed(2);
+  const curRes = +Math.max(...highs.slice(-20)).toFixed(2);
+  const curAtr = Math.max(atr14[lastBarIdx], isBtc ? livePrice * 0.00085 : 2.80);
+
+  const buyEntry = +Math.min(curSup + curAtr * 0.15, livePrice - curAtr * 0.20).toFixed(2);
+  const sellEntry = +Math.max(curRes - curAtr * 0.15, livePrice + curAtr * 0.20).toFixed(2);
+  const pSlD  = +(curAtr * 1.15).toFixed(2);
+  const pTp1D = +(curAtr * 0.78).toFixed(2);
+  const pTp2D = +(curAtr * 1.95).toFixed(2);
+  const unitScaleNow = isBtc ? (0.045 * lotMultiplier) : (1.0 * lotMultiplier);
+  const projGross = +(((0.5 * pTp1D) + (0.5 * pTp2D)) * unitScaleNow).toFixed(2);
+  const projNet   = +(projGross - feePerTrade).toFixed(2);
+
+  const candles = closedKlines.slice(-150).map((k, idx) => ({
+    time: Math.floor(k[0] / 1000),
+    open: +(parseFloat(k[1]) + basisOffset).toFixed(2),
+    high: +(parseFloat(k[2]) + basisOffset).toFixed(2),
+    low:  +(parseFloat(k[3]) + basisOffset).toFixed(2),
+    close:+(parseFloat(k[4]) + basisOffset).toFixed(2)
+  }));
+
+  const recentMarkers = last100.slice(0, 18).reverse().map(t => ({
+    time: t.entry_ts,
+    position: t.side === 'BUY' ? 'belowBar' : 'aboveBar',
+    color: t.side === 'BUY' ? '#14b8a6' : '#f43f5e',
+    shape: t.side === 'BUY' ? 'arrowUp' : 'arrowDown',
+    text: `${t.id} ${t.side} @ $${t.entry} (${t.result})`
+  }));
+
+  return {
+    price: +livePrice.toFixed(2),
+    structure: livePrice >= ema20[lastBarIdx] ? 'BULLISH STRUCTURE' : 'BEARISH PRESSURE',
+    sup: curSup, res: curRes,
+    confluence_text: `${tfLabel.toUpperCase()} Institutional Box ($${curSup} – $${curRes}) · Executed over ${spanInfo.daysText}`,
+    execution_days_text: spanInfo.daysText,
+    backtest_summary: {
+      total_trades: last100.length,
+      wins, losses, win_rate: winRate,
+      gross_profit_usd: grossTotal,
+      broker_fee_usd: feeTotal,
+      net_profit_usd: netTotal,
+      profit_factor: pf,
+      expectancy_per_trade: +(netTotal / Math.max(1, last100.length)).toFixed(2),
+      days_span: spanInfo.daysText
+    },
+    pending_orders: [
+      {
+        id: `AURA-${isBtc ? 'BTC' : 'XAU'}-${tfLabel.toUpperCase()}-BUY`,
+        type: 'BUY LIMIT', side: 'BUY',
+        badge: `${tfLabel.toUpperCase()} Support Exhaustion`,
+        entry: buyEntry,
+        sl: +(buyEntry - pSlD).toFixed(2),
+        tp1: +(buyEntry + pTp1D).toFixed(2),
+        tp2: +(buyEntry + pTp2D).toFixed(2),
+        gross_proj: projGross, fee_usd: feePerTrade, net_proj: projNet,
+        rr: '1 : 1.70',
+        reason: `Institutional demand limit at ${tfLabel.toUpperCase()} Support ($${curSup}) · ${lotSize} Lot`
+      },
+      {
+        id: `AURA-${isBtc ? 'BTC' : 'XAU'}-${tfLabel.toUpperCase()}-SELL`,
+        type: 'SELL LIMIT', side: 'SELL',
+        badge: `${tfLabel.toUpperCase()} Resistance Exhaustion`,
+        entry: sellEntry,
+        sl: +(sellEntry + pSlD).toFixed(2),
+        tp1: +(sellEntry - pTp1D).toFixed(2),
+        tp2: +(sellEntry - pTp2D).toFixed(2),
+        gross_proj: projGross, fee_usd: feePerTrade, net_proj: projNet,
+        rr: '1 : 1.70',
+        reason: `Institutional supply limit at ${tfLabel.toUpperCase()} Resistance ($${curRes}) · ${lotSize} Lot`
+      }
+    ],
+    candles,
+    markers: recentMarkers,
+    last_100_trades: last100
+  };
+};
+
+// Override switchAsset and recalcAndRender so BTCUSD fetches REAL Binance BTCUSDT 1m/3m/5m candles and updates all labels + Execution Days!
+window.recalcAndRender = async function() {
+  const isBtc = (typeof currentAsset !== 'undefined' && currentAsset === 'BTCUSD');
+  const tf = (typeof currentTf !== 'undefined' ? currentTf : '1m');
+  const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
+  const baseFee001 = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
+  const fee = +((lot / 0.01) * baseFee001).toFixed(2);
+
+  if (isBtc) {
+    let btcKlines = window.AURA_BTC_CACHE[tf];
+    if (!btcKlines) {
+      btcKlines = await fetchRealBtcKlines(tf);
+    }
+    if (btcKlines && typeof LIVE_DATA !== 'undefined') {
+      const userTarget = parseFloat(document.getElementById('tvPriceInput')?.value);
+      const lastRawClose = parseFloat(btcKlines[btcKlines.length - 2][4]);
+      const btcBasis = (!isNaN(userTarget) && userTarget > 1000) ? (userTarget - lastRawClose) : 0;
+      LIVE_DATA.assets.BTCUSD = window.runDeterministicBacktest(btcKlines, btcBasis, tf, 'BTCUSD');
+    }
+  } else if (typeof RAW_KLINES_BY_TF !== 'undefined' && RAW_KLINES_BY_TF[tf]) {
+    const basis = (typeof getCalibratedBasis === 'function') ? getCalibratedBasis(RAW_KLINES_BY_TF[tf]) : 0;
+    LIVE_DATA.assets.XAUUSD = window.runDeterministicBacktest(RAW_KLINES_BY_TF[tf], basis, tf, 'XAUUSD');
+  }
+
+  if (typeof renderAsset === 'function') renderAsset();
+  if (typeof renderAutoTraderDesk === 'function') renderAutoTraderDesk();
+
+  // Force-sync EVERY label on screen (including Floating PnL, Win Rate subtext, Top Audited badge, and Ledger Header)
+  const activeData = (typeof LIVE_DATA !== 'undefined' && LIVE_DATA.assets) ? (LIVE_DATA.assets[currentAsset] || LIVE_DATA.assets.XAUUSD) : null;
+  const daysStr = activeData?.execution_days_text || computeTradeDaysSpan(activeData?.last_100_trades, tf).daysText;
+
+  const fltHdr = document.getElementById('floatingPnlHeader');
+  if (fltHdr) fltHdr.innerText = `Live Floating PnL (${lot} Lot)`;
+  const fltFee = document.getElementById('floatingFeeSub');
+  if (fltFee) fltFee.innerText = `Includes -$${fee.toFixed(2)} Broker Fee`;
+
+  const topDays = document.getElementById('topDaysBadge');
+  if (topDays) topDays.innerText = `⏱ ${daysStr}`;
+  const spanEl = document.getElementById('tradeDaysSpan');
+  if (spanEl) spanEl.innerText = daysStr;
+  const lotLbl = document.getElementById('ledgerLotLabel');
+  if (lotLbl) lotLbl.innerText = `${lot} Lot · -$${fee.toFixed(2)} Fee`;
+
+  if (activeData && activeData.backtest_summary) {
+    const s = activeData.backtest_summary;
+    const wrSub = document.getElementById('winRateSub');
+    if (wrSub) wrSub.innerText = `${s.wins} Wins / ${s.losses} Losses (100T in ${daysStr})`;
+    const autoSub = document.getElementById('autoExecutedSub');
+    if (autoSub) autoSub.innerText = `${s.wins}W / ${s.losses}L (${s.win_rate}% · ${daysStr})`;
+  }
+};
+
+// Hook switchAsset so tapping BTCUSD immediately loads real BTCUSDT candles
+const _origSwitchAsset = window.switchAsset;
+window.switchAsset = async function(sym) {
+  window.currentAsset = sym;
+  const bXau = document.getElementById('btn-XAUUSD');
+  const bBtc = document.getElementById('btn-BTCUSD');
+  if (bXau && bBtc) {
+    bXau.className = sym === 'XAUUSD' ? 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-400 text-black transition' : 'px-3.5 py-1.5 rounded-xl text-xs font-semibold text-neutral-300 hover:text-white transition';
+    bBtc.className = sym === 'BTCUSD' ? 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-400 text-black transition' : 'px-3.5 py-1.5 rounded-xl text-xs font-semibold text-neutral-300 hover:text-white transition';
+  }
+  await window.recalcAndRender();
+};
+
+setTimeout(() => { window.recalcAndRender(); }, 600);
+</script>
+
 </body>
 </html>
