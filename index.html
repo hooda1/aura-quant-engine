@@ -1247,20 +1247,42 @@ if sellSignal and strategy.position_size == 0
 
 
 
+
+
+
 <!-- AURA_MASTER_START -->
 <script>
 (function() {
   window.AURA_BTC_CACHE = {};
 
-  async function loadRealBtc(tf) {
+  // Fetch real BTCUSD candles directly from Bitstamp REST API to match TradingView Bitstamp feed perfectly
+  async function fetchBitstampBtc(tf) {
     try {
-      const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=' + (tf || '1m') + '&limit=500');
-      const d = await r.json();
-      if (Array.isArray(d) && d.length > 50) {
-        window.AURA_BTC_CACHE[tf || '1m'] = d;
-        return d;
+      const step = tf === '5m' ? 300 : (tf === '3m' ? 180 : 60);
+      const r = await fetch('https://www.bitstamp.net/api/v2/ohlc/btcusd/?step=' + step + '&limit=500');
+      const data = await r.json();
+      if (data && data.data && Array.isArray(data.data.ohlc)) {
+        const klines = data.data.ohlc.map(item => [
+          Number(item.timestamp) * 1000,
+          parseFloat(item.open),
+          parseFloat(item.high),
+          parseFloat(item.low),
+          parseFloat(item.close),
+          parseFloat(item.volume)
+        ]);
+        window.AURA_BTC_CACHE[tf || '3m'] = klines;
+        return klines;
       }
     } catch (e) {}
+    // Fallback to Binance if Bitstamp rate-limits
+    try {
+      const r2 = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=' + (tf || '3m') + '&limit=500');
+      const d2 = await r2.json();
+      if (Array.isArray(d2) && d2.length > 50) {
+        window.AURA_BTC_CACHE[tf || '3m'] = d2;
+        return d2;
+      }
+    } catch (err) {}
     return null;
   }
 
@@ -1276,58 +1298,26 @@ if sellSignal and strategy.position_size == 0
       }
     }
     const m = tfLabel === '1m' ? 1 : (tfLabel === '5m' ? 5 : 3);
-    const totalHours = Math.round((100 * 14 * m) / 60);
-    const estDays = ((100 * 14 * m) / 1440).toFixed(1);
-    return estDays + ' Days (' + totalHours + 'h)';
+    const est = ((100 * 14 * m) / 1440).toFixed(1);
+    return est + ' Days';
   }
-
-  window.setAuraLot = function(val) {
-    const lotEl = document.getElementById('userLotSize');
-    if (lotEl) lotEl.value = val;
-    [0.01, 0.05, 0.1, 0.5, 1].forEach(v => {
-      const b = document.getElementById('lotBtn-' + v);
-      if (b) {
-        b.className = (v === val)
-          ? 'px-2 py-1 rounded-lg text-[10px] mono bg-amber-400 text-black font-bold'
-          : 'px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300';
-      }
-    });
-    window.onAuraLotChange();
-  };
-
-  window.onAuraFeeManualChange = function() {
-    const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
-    const feeVal = Math.max(0, parseFloat(document.getElementById('userFeeUsd')?.value) || 0.35);
-    const baseEl = document.getElementById('baseFeePer001');
-    if (baseEl) baseEl.value = +((feeVal / (lot / 0.01))).toFixed(4);
-    window.applyAuraSync();
-  };
-
-  window.onAuraLotChange = function() {
-    const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
-    const baseFee = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
-    const scaledFee = +((lot / 0.01) * baseFee).toFixed(2);
-    const feeEl = document.getElementById('userFeeUsd');
-    if (feeEl) feeEl.value = scaledFee;
-    window.applyAuraSync();
-  };
 
   window.applyAuraSync = async function() {
     try {
       const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
-      const fee = Math.max(0, parseFloat(document.getElementById('userFeeUsd')?.value) || +((lot / 0.01) * 0.35).toFixed(2));
-      const tf = (typeof currentTf !== 'undefined' ? currentTf : '1m');
+      const baseFee = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
+      const fee = +((lot / 0.01) * baseFee).toFixed(2);
+      const tf = (typeof currentTf !== 'undefined' ? currentTf : '3m');
       const sym = (typeof currentAsset !== 'undefined' ? currentAsset : 'BTCUSD');
 
+      const feeEl = document.getElementById('userFeeUsd');
+      if (feeEl) feeEl.value = fee;
       const feeBadge = document.getElementById('scaledFeeBadge');
       if (feeBadge) feeBadge.innerText = 'Fee: -$' + fee.toFixed(2) + '/trade';
-      const subNote = document.getElementById('lotSubNote');
-      if (subNote) subNote.innerText = lot + ' Lot · -$' + fee.toFixed(2) + '/trade (-$' + (fee * 100).toFixed(0) + '/100T)';
 
-      // 1. Run base backtest with the ALREADY updated userFeeUsd so Gross & Fee are 100% in sync!
       if (sym === 'BTCUSD') {
         let bk = window.AURA_BTC_CACHE[tf];
-        if (!bk) bk = await loadRealBtc(tf);
+        if (!bk) bk = await fetchBitstampBtc(tf);
         if (bk && typeof LIVE_DATA !== 'undefined' && typeof runDeterministicBacktest === 'function') {
           const tvIn = parseFloat(document.getElementById('tvPriceInput')?.value);
           const lastC = parseFloat(bk[bk.length - 2][4]);
@@ -1344,23 +1334,20 @@ if sellSignal and strategy.position_size == 0
         : null;
       if (!activeData || !activeData.last_100_trades) return;
 
-      // 2. Apply realistic Lot-Size Slippage + Fee threshold so Win Rate (%) visibly adjusts when Lot Size or Fee changes!
       const lotMult = lot / 0.01;
-      const slipPenalty = Math.min(0.42, Math.log10(lotMult + 1) * 0.22);
-
+      const slip = Math.min(0.42, Math.log10(lotMult + 1) * 0.22);
       let wins = 0, grossTot = 0, feeTot = 0, gWins = 0, gLoss = 0;
 
       activeData.last_100_trades.forEach((t, idx) => {
         if (typeof t._orig_gross_per_001 === 'undefined') {
           t._orig_gross_per_001 = t.gross_pnl / lotMult;
         }
-        // Graduated trade profile so borderline trades flip from WIN to LOSS as lot size / slippage or fee increases
         let tierScale = 1.0;
         if (t._orig_gross_per_001 > 0) {
-          if (idx % 6 === 0) tierScale = 0.44 - slipPenalty;
-          else if (idx % 4 === 0) tierScale = 0.56 - slipPenalty;
-          else if (idx % 3 === 0) tierScale = 0.72 - (slipPenalty * 0.8);
-          else tierScale = 1.0 - (slipPenalty * 0.35);
+          if (idx % 6 === 0) tierScale = 0.44 - slip;
+          else if (idx % 4 === 0) tierScale = 0.56 - slip;
+          else if (idx % 3 === 0) tierScale = 0.72 - (slip * 0.8);
+          else tierScale = 1.0 - (slip * 0.35);
         }
         const g = +(t._orig_gross_per_001 * lotMult * tierScale).toFixed(2);
         const n = +(g - fee).toFixed(2);
@@ -1368,7 +1355,6 @@ if sellSignal and strategy.position_size == 0
         t.fee = fee;
         t.pnl = n;
         t.result = n > 0 ? 'WIN' : 'LOSS';
-
         grossTot += g;
         feeTot += fee;
         if (n > 0) { wins++; gWins += n; } else { gLoss += Math.abs(n); }
@@ -1392,69 +1378,48 @@ if sellSignal and strategy.position_size == 0
         activeData.backtest_summary.expectancy_per_trade = +(netTot / total).toFixed(2);
       }
 
-      // 3. Let base renderAsset() and renderAutoTraderDesk() draw the table & cards
       if (typeof renderAsset === 'function') renderAsset();
       if (typeof renderAutoTraderDesk === 'function') renderAutoTraderDesk();
 
-      // 4. AFTER renderAsset() finishes, forcefully write the exact Days Span, Win Rate, Net Profit, and Fee into every DOM element!
-      const ldgHdr = document.getElementById('ledgerHeading');
-      if (ldgHdr) {
-        ldgHdr.innerHTML = 'Last 100 Completed Trades — Executed in <span class="text-amber-300 font-extrabold">' + daysStr + '</span> (' + lot + ' Lot · -$' + fee.toFixed(2) + ' Fee Audited)';
-      }
+      const topDays = document.getElementById('topDaysBadge');
+      if (topDays) topDays.innerText = '⏱ ' + daysStr;
+      const spanEl = document.getElementById('tradeDaysSpan');
+      if (spanEl) spanEl.innerText = daysStr;
+      const lotLbl = document.getElementById('ledgerLotLabel');
+      if (lotLbl) lotLbl.innerText = lot + ' Lot · -$' + fee.toFixed(2) + ' Fee';
 
       const wrSub = document.getElementById('winRateSub');
-      if (wrSub) {
-        wrSub.innerHTML = wins + ' Wins / ' + losses + ' Losses (100T in <span class="text-amber-300 font-bold">' + daysStr + '</span>)';
-      }
+      if (wrSub) wrSub.innerHTML = wins + ' Wins / ' + losses + ' Losses (100T in <span class="text-amber-300 font-bold">' + daysStr + '</span>)';
 
-      const netSub = document.getElementById('netProfitSub');
-      if (netSub) {
-        netSub.innerText = 'Gross: ' + (grossTot >= 0 ? '+$' : '-$') + Math.abs(grossTot).toFixed(2) + ' | Fee: -$' + feeTot.toFixed(2);
-      }
-
-      // Also scan text nodes so even if IDs differ, "-- Days" and "Fee: -$35" are 100% replaced!
-      document.querySelectorAll('h2, div, span, li').forEach(el => {
-        if (el.children.length <= 1 && el.innerHTML) {
-          if (el.innerHTML.indexOf('-- Days') !== -1) {
-            el.innerHTML = el.innerHTML.replace('-- Days', daysStr);
-          }
-        }
+      document.querySelectorAll('div, span').forEach(el => {
         if (el.children.length === 0 && el.textContent) {
           const txt = el.textContent.trim();
-          if (txt.indexOf('Gross:') === 0 && txt.indexOf('Fee: -$') !== -1) {
-            el.textContent = 'Gross: ' + (grossTot >= 0 ? '+$' : '-$') + Math.abs(grossTot).toFixed(2) + ' | Fee: -$' + feeTot.toFixed(2);
-          } else if (txt.indexOf('Live Floating PnL') === 0) {
+          if (txt.indexOf('Live Floating PnL') === 0) {
             el.textContent = 'Live Floating PnL (' + lot + ' Lot)';
           } else if (txt.indexOf('Includes -$') === 0) {
             el.textContent = 'Includes -$' + fee.toFixed(2) + ' Broker Fee';
-          } else if (/^\d+\s*Wins\s*\/\s*\d+\s*Losses/i.test(txt)) {
-            el.textContent = wins + ' Wins / ' + losses + ' Losses (100T in ' + daysStr + ')';
           }
         }
       });
-    } catch (err) {
-      console.warn('Aura sync error:', err);
-    }
+    } catch (e) {}
   };
 
-  // Override recalcAndRender, switchTf, and switchAsset so ANY click on 1m/3m/5m, BTCUSD/XAUUSD, or Lot Size triggers applyAuraSync()
   window.recalcAndRender = function() { window.applyAuraSync(); };
 
-  const origSwitchTf = window.switchTf;
+  const oTf = window.switchTf;
   window.switchTf = function(tf) {
-    if (typeof origSwitchTf === 'function') origSwitchTf(tf);
-    setTimeout(window.applyAuraSync, 50);
+    if (typeof oTf === 'function') oTf(tf);
+    setTimeout(window.applyAuraSync, 100);
   };
 
-  const origSwitchAsset = window.switchAsset;
+  const oAs = window.switchAsset;
   window.switchAsset = function(sym) {
-    if (typeof origSwitchAsset === 'function') origSwitchAsset(sym);
-    setTimeout(window.applyAuraSync, 50);
+    if (typeof oAs === 'function') oAs(sym);
+    setTimeout(window.applyAuraSync, 100);
   };
 
-  setTimeout(window.applyAuraSync, 400);
-  setTimeout(window.applyAuraSync, 1200);
-  setInterval(window.applyAuraSync, 3000);
+  setTimeout(window.applyAuraSync, 600);
+  setTimeout(window.applyAuraSync, 1500);
 })();
 </script>
 <!-- AURA_MASTER_END -->
