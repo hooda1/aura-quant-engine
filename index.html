@@ -1514,6 +1514,14 @@
       document.getElementById('syncStatus').innerText = `${currentTf.toUpperCase()} Closed-Candle Locked (${d.total_audited} Audited Trades) · FXCM Basis (${d.basis >= 0 ? '+' : ''}${d.basis} USD) · ${lot} Lot`;
 
       candleSeries.setData(d.candles);
+      const lastTrades = d.last_100_trades;
+      if (lastTrades && lastTrades.length > 0) {
+        const oldestTs = lastTrades[lastTrades.length - 1].entry_ts * 1000;
+        const newestTs = lastTrades[0].entry_ts * 1000;
+        const diffDays = Math.max(1, Math.round((newestTs - oldestTs) / (1000 * 60 * 60 * 24)));
+        const spanEl = document.getElementById('tradeDaysSpan');
+        if (spanEl) spanEl.innerText = `${diffDays} Days`;
+      }
       candleSeries.setMarkers(d.markers || []);
       chart.timeScale().fitContent();
 
