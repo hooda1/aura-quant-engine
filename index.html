@@ -474,67 +474,61 @@
       const lot = parseFloat(document.getElementById('userLotSize')?.value) || 0.01;
       const fee = parseFloat(document.getElementById('userFeeUsd')?.value) || 0.15;
 
-      const script = `//@version=5
-strategy("AURA ${currentAsset} ${currentTf.toUpperCase()} VIP Auto-Trader (SR Break + Dot 2-4)", overlay=true, default_qty_type=strategy.fixed, default_qty_value=${lot * 100}, commission_type=strategy.commission.cash_per_order, commission_value=${fee})
-
-// LOCKED TO USER'S CHOSEN TIMEFRAME: ${currentTf.toUpperCase()} ("${tfNum}" minutes)
-tf = "${tfNum}"
-[o, h, l, c] = request.security(syminfo.tickerid, tf, [open, high, low, close], lookahead=barmerge.lookahead_off)
-
-supZone = request.security(syminfo.tickerid, tf, ta.lowest(low, 20)[1])
-resZone = request.security(syminfo.tickerid, tf, ta.highest(high, 20)[1])
-ema20   = request.security(syminfo.tickerid, tf, ta.ema(close, 20))
-ema34   = request.security(syminfo.tickerid, tf, ta.ema(close, 34))
-rsi14   = request.security(syminfo.tickerid, tf, ta.rsi(close, 14))
-rawAtr  = request.security(syminfo.tickerid, tf, ta.atr(14))
-dispAtr = math.max(rawAtr, 2.80)
-
-// Exhaustion Dot Counter (Matches AURA ${currentTf.toUpperCase()} Engine 100%)
-var int bullDots = 0
-var int bearDots = 0
-isBullEx = (l <= supZone + rawAtr * 0.70 and c >= (l + (h - l) * 0.30)) or (l <= ema20 - rawAtr * 0.35 and rsi14 < 49)
-isBearEx = (h >= resZone - rawAtr * 0.70 and c <= (h - (h - l) * 0.30)) or (h >= ema20 + rawAtr * 0.35 and rsi14 > 51)
-
-if isBullEx
-    bullDots += 1
-    bearDots := 0
-else if isBearEx
-    bearDots += 1
-    bullDots := 0
-else
-    if c > ema34
-        bearDots := 0
-    if c < ema34
-        bullDots := 0
-
-// Exact ${currentTf.toUpperCase()} Entry Rules: Dot #2-#4 Reversal OR Post-Dot #1 SR Break
-buySig  = (bullDots >= 2 and bullDots <= 4 and c >= o) or ((bullDots[1] >= 1 or bullDots[2] >= 1) and c > resZone - rawAtr * 0.25 and c > o)
-sellSig = (bearDots >= 2 and bearDots <= 4 and c <= o) or ((bearDots[1] >= 1 or bearDots[2] >= 1) and c < supZone + rawAtr * 0.25 and c < o)
-
-slDist  = dispAtr * 1.15
-tp1Dist = dispAtr * 0.78
-tp2Dist = dispAtr * 1.95
-
-if buySig and strategy.position_size == 0
-    strategy.entry("AURA_${currentTf.toUpperCase()}_BUY", strategy.long, alert_message='{"tf":"${currentTf}","side":"BUY","lot":${lot}}')
-    strategy.exit("TP1", "AURA_${currentTf.toUpperCase()}_BUY", qty_percent=50, limit=c + tp1Dist, stop=c - slDist)
-    strategy.exit("TP2", "AURA_${currentTf.toUpperCase()}_BUY", limit=c + tp2Dist, stop=c - slDist)
-
-if sellSig and strategy.position_size == 0
-    strategy.entry("AURA_${currentTf.toUpperCase()}_SELL", strategy.short, alert_message='{"tf":"${currentTf}","side":"SELL","lot":${lot}}')
-    strategy.exit("TP1", "AURA_${currentTf.toUpperCase()}_SELL", qty_percent=50, limit=c - tp1Dist, stop=c + slDist)
-    strategy.exit("TP2", "AURA_${currentTf.toUpperCase()}_SELL", limit=c - tp2Dist, stop=c + slDist)`;
+      // 100% FLAT ZERO-INDENTATION PINE SCRIPT (Immune to TradingView mobile staircase paste bug!)
+      const script = [
+        `//@version=5`,
+        `strategy("AURA ${currentAsset} ${currentTf.toUpperCase()} VIP Auto-Trader", overlay=true, default_qty_type=strategy.fixed, default_qty_value=${lot * 100}, commission_type=strategy.commission.cash_per_order, commission_value=${fee})`,
+        ``,
+        `tf = "${tfNum}"`,
+        `[o, h, l, c] = request.security(syminfo.tickerid, tf, [open, high, low, close], lookahead=barmerge.lookahead_off)`,
+        `supZone = request.security(syminfo.tickerid, tf, ta.lowest(low, 20)[1])`,
+        `resZone = request.security(syminfo.tickerid, tf, ta.highest(high, 20)[1])`,
+        `ema20 = request.security(syminfo.tickerid, tf, ta.ema(close, 20))`,
+        `ema34 = request.security(syminfo.tickerid, tf, ta.ema(close, 34))`,
+        `rsi14 = request.security(syminfo.tickerid, tf, ta.rsi(close, 14))`,
+        `rawAtr = request.security(syminfo.tickerid, tf, ta.atr(14))`,
+        `dispAtr = math.max(rawAtr, 2.80)`,
+        ``,
+        `isBullEx = (l <= supZone + rawAtr * 0.70 and c >= (l + (h - l) * 0.30)) or (l <= ema20 - rawAtr * 0.35 and rsi14 < 49)`,
+        `isBearEx = (h >= resZone - rawAtr * 0.70 and c <= (h - (h - l) * 0.30)) or (h >= ema20 + rawAtr * 0.35 and rsi14 > 51)`,
+        ``,
+        `var int bullDots = 0`,
+        `var int bearDots = 0`,
+        `bullDots := isBullEx ? bullDots + 1 : (isBearEx or c < ema34 ? 0 : bullDots)`,
+        `bearDots := isBearEx ? bearDots + 1 : (isBullEx or c > ema34 ? 0 : bearDots)`,
+        ``,
+        `buySig = (bullDots >= 2 and bullDots <= 4 and c >= o) or ((bullDots[1] >= 1 or bullDots[2] >= 1) and c > resZone - rawAtr * 0.25 and c > o)`,
+        `sellSig = (bearDots >= 2 and bearDots <= 4 and c <= o) or ((bearDots[1] >= 1 or bearDots[2] >= 1) and c < supZone + rawAtr * 0.25 and c < o)`,
+        ``,
+        `slDist = dispAtr * 1.15`,
+        `tp1Dist = dispAtr * 0.78`,
+        `tp2Dist = dispAtr * 1.95`,
+        ``,
+        `goLong = buySig and strategy.position_size == 0`,
+        `goShort = sellSig and strategy.position_size == 0`,
+        ``,
+        `strategy.entry("AURA_BUY", strategy.long, when=goLong, comment="VIP Buy")`,
+        `strategy.exit("TP1_B", "AURA_BUY", qty_percent=50, limit=c + tp1Dist, stop=c - slDist, when=goLong)`,
+        `strategy.exit("TP2_B", "AURA_BUY", limit=c + tp2Dist, stop=c - slDist, when=goLong)`,
+        ``,
+        `strategy.entry("AURA_SELL", strategy.short, when=goShort, comment="VIP Sell")`,
+        `strategy.exit("TP1_S", "AURA_SELL", qty_percent=50, limit=c - tp1Dist, stop=c + slDist, when=goShort)`,
+        `strategy.exit("TP2_S", "AURA_SELL", limit=c - tp2Dist, stop=c + slDist, when=goShort)`,
+        ``,
+        `plot(supZone, "Support Box", color=color.new(color.teal, 30), linewidth=2)`,
+        `plot(resZone, "Resistance Box", color=color.new(color.red, 30), linewidth=2)`,
+        `plotshape(goLong, "VIP Buy", shape.labelup, location.belowbar, color.teal, 0, "BUY", color.white, size=size.small)`,
+        `plotshape(goShort, "VIP Sell", shape.labeldown, location.abovebar, color.red, 0, "SELL", color.white, size=size.small)`
+      ].join('\n');
 
       const box = document.getElementById('pineCodeBox');
       if (box) box.innerText = script;
       const lbl = document.getElementById('pineScriptTfLabel');
-      if (lbl) lbl.innerText = `Locked Timeframe: ${currentTf.toUpperCase()}`;
+      if (lbl) lbl.innerText = 'Locked Timeframe: ' + currentTf.toUpperCase();
       const mBadge = document.getElementById('tvModalTfBadge');
-      if (mBadge) mBadge.innerText = `Locked to Chosen Timeframe: ${currentTf.toUpperCase()}`;
+      if (mBadge) mBadge.innerText = 'Active Timeframe: ' + currentTf.toUpperCase();
       const mTxt = document.getElementById('tvModalTfText');
       if (mTxt) mTxt.innerText = currentTf.toUpperCase();
-      const mInp = document.getElementById('tvLockedTfInput');
-      if (mInp) mInp.value = `${currentTf.toUpperCase()} (${currentAsset} Auto-Synced)`;
     }
 
     function renderAutoTraderDesk() {
