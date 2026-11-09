@@ -304,23 +304,30 @@
         { title: 'Scene 3 (16–24s: The Blessing/CTA)', bg: 'peaceful golden morning light', speech: s3 }
       ];
 
-      const container = document.getElementById('promptOutputBox');
-      container.innerHTML = scenes.map((sc, i) => `
-        <div class="p-4 rounded-xl bg-slate-900/95 border border-slate-800 space-y-2">
-          <div class="text-xs font-bold text-emerald-400 mono">${sc.title}</div>
-          <div class="text-xs text-amber-200 font-semibold">Dialogue: "${sc.speech}"</div>
-          <div class="text-[11px] text-slate-400 mono bg-black/40 p-2.5 rounded-lg border border-slate-800">
-            <b>Stage 1 Image Prompt:</b> Using this exact reference photo of ${avatar}, keep exact real face 100% identical in a ${sc.bg}, 9:16.<br/><br/>
-            <b>Stage 2 Video Prompt:</b> Using attached scene image as starting frame, calm lip-sync speaking: "${sc.speech}"
-          </div>
-        </div>
-      `).join('');
+            const container = document.getElementById('promptOutputBox');
+      container.innerHTML = scenes.map(function(sc) {
+        return '<div class="p-4 rounded-xl bg-slate-900/95 border border-slate-800 space-y-2">' +
+          '<div class="text-xs font-bold text-emerald-400 mono">' + sc.title + '</div>' +
+          '<div class="text-xs text-amber-200 font-semibold">Dialogue: "' + sc.speech + '"</div>' +
+          '<div class="text-[11px] text-slate-400 mono bg-black/40 p-2.5 rounded-lg border border-slate-800">' +
+            '<b>Stage 1 Image Prompt:</b> Using this exact reference photo of ' + avatar + ', keep exact real face 100% identical in a ' + sc.bg + ', 9:16.<br/><br/>' +
+            '<b>Stage 2 Video Prompt:</b> Using attached scene image as starting frame, calm lip-sync speaking: "' + sc.speech + '"' +
+          '</div>' +
+        '</div>';
+      }).join('');
     }
 
     function sendCustomScriptWhatsApp() {
-      const topic = document.getElementById('topicInput').value.trim();
-      const avatar = document.getElementById('avatarInput').value.trim();
-      const msg = encodeURIComponent(`Hi Manish, I used your Free Script Architect on the website.\n\nTopic: ${topic}\nAvatar/Reference: ${avatar}\n\nI want to get this 3-scene AI Reel created via your pipeline (Rs 1200).`);
+      var topic = document.getElementById('topicInput').value.trim();
+      var avatar = document.getElementById('avatarInput').value.trim();
+      var msg = encodeURIComponent('Hi Manish, I used your Free Script Architect on the website.
+
+Topic: ' + topic + '
+Avatar/Reference: ' + avatar + '
+
+I want to get this 3-scene AI Reel created via your pipeline (Rs 1200).');
+      window.open('https://wa.me/917011165545?text=' + msg, '_blank');
+    }\nAvatar/Reference: ${avatar}\n\nI want to get this 3-scene AI Reel created via your pipeline (Rs 1200).`);
       window.open(`https://wa.me/917011165545?text=${msg}`, '_blank');
     }
 
