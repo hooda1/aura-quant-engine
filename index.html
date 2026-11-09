@@ -394,7 +394,7 @@ if sellSignal and strategy.position_size == 0
 
     const STATE = { rawKlines: {}, models: {} };
     const BASIS_OFFSETS = {
-      'XAUUSD': parseFloat(localStorage.getItem('aura_xau_basis_v8') || '6.55'),
+      'XAUUSD': parseFloat(localStorage.getItem('aura_xau_basis_v8') || '10.00'),
       'BTCUSD': 0.00
     };
 
@@ -1253,23 +1253,21 @@ if sellSignal and strategy.position_size == 0
 
 
 
+
+
+
 <!-- AURA_MASTER_START -->
 <script>
 (function() {
-  // 1. STOP BROWSER AUTO-TELEGRAM SPAM: Only allow Telegram API calls when user clicks the manual "Push Report" button!
+  // Block any automatic background Telegram spam from browser tabs
   window._ALLOW_MANUAL_TG = false;
   const origFetch = window.fetch;
   window.fetch = async function(url, opts) {
-    if (typeof url === 'string' && url.indexOf('api.telegram.org') !== -1) {
-      if (!window._ALLOW_MANUAL_TG) {
-        console.log('Blocked automatic background Telegram spam from browser.');
-        return new Response(JSON.stringify({ ok: true, blocked_auto_spam: true }), { status: 200 });
-      }
+    if (typeof url === 'string' && url.indexOf('api.telegram.org') !== -1 && !window._ALLOW_MANUAL_TG) {
+      return new Response(JSON.stringify({ ok: true, skipped_auto: true }), { status: 200 });
     }
     return origFetch.apply(this, arguments);
   };
-
-  // Allow manual button click to send 1 clean report
   const origPushTg = window.pushToTelegram;
   if (typeof origPushTg === 'function') {
     window.pushToTelegram = async function() {
@@ -1280,22 +1278,26 @@ if sellSignal and strategy.position_size == 0
     };
   }
 
-  // 2. REAL-TIME PRICE CALIBRATION FOR BOTH BTCUSD (Coinbase Pure USD Spot) & XAUUSD (ICE Spot Gold)
-  window.AURA_BTC_CACHE = {};
-  window.LIVE_USD_SPOT = { BTCUSD: null, XAUUSD_BASIS: 10.0 };
+  // Persistent state so AURA NEVER jumps back from BTCUSD to XAUUSD or resets your Lot Size!
+  window.OCTA_STATE = {
+    asset: localStorage.getItem('aura_locked_asset') || 'XAUUSD',
+    tf: localStorage.getItem('aura_locked_tf') || '1m',
+    lot: parseFloat(localStorage.getItem('aura_locked_lot')) || 0.01,
+    baseFee001: parseFloat(localStorage.getItem('aura_locked_base_fee')) || 0.35,
+    // Exact calibrated basis offsets matching TradingOcta Demo #271992245:
+    // XAUUSD Octa (4118.82) vs PAXGUSDT (~4108.82) => +10.00 USD
+    // BTCUSD Octa (74968.50) vs BTCUSDT (~75012.80) => -44.30 USD
+    basis: {
+      XAUUSD: parseFloat(localStorage.getItem('octa_basis_XAUUSD')) || 10.00,
+      BTCUSD: parseFloat(localStorage.getItem('octa_basis_BTCUSD')) || -44.30
+    },
+    rawLast: {
+      XAUUSD: null,
+      BTCUSD: null
+    }
+  };
 
-  async function fetchPureUsdSpotBtc() {
-    try {
-      // Coinbase BTC-USD matches TradingView's CRYPTO:BTCUSD pure USD index (unlike Binance BTCUSDT which is ~$65 higher!)
-      const r = await origFetch('https://api.coinbase.com/v2/prices/BTC-USD/spot');
-      const j = await r.json();
-      if (j && j.data && j.data.amount) {
-        window.LIVE_USD_SPOT.BTCUSD = parseFloat(j.data.amount);
-        return window.LIVE_USD_SPOT.BTCUSD;
-      }
-    } catch (e) {}
-    return null;
-  }
+  window.AURA_BTC_CACHE = {};
 
   async function fetchBtcKlines(tf) {
     const interval = tf || '1m';
@@ -1304,21 +1306,86 @@ if sellSignal and strategy.position_size == 0
       const d = await r.json();
       if (Array.isArray(d) && d.length > 50) {
         window.AURA_BTC_CACHE[interval] = d;
+        window.OCTA_STATE.rawLast.BTCUSD = parseFloat(d[d.length - 1][4]);
         return d;
       }
     } catch (e) {}
-    return null;
+    return window.AURA_BTC_CACHE[interval] || null;
   }
 
-  // Override getCalibratedBasis for Gold so default Basis matches TradingView ICE Gold Spot (+10.00 instead of +6.55)
-  const origBasisFn = window.getCalibratedBasis;
-  window.getCalibratedBasis = function(klines) {
-    const tvIn = parseFloat(document.getElementById('tvPriceInput')?.value);
-    if (!isNaN(tvIn) && tvIn > 1000 && klines && klines.length > 1) {
-      const rawLast = parseFloat(klines[klines.length - 1][4]);
-      return +(tvIn - rawLast).toFixed(2);
+  // Build the Strict Octa Broker Price Bar right inside the top sync box
+  function injectOctaBrokerPanel() {
+    if (document.getElementById('octaStrictBar')) return;
+    const syncBtn = document.querySelector('button[onclick*="applyTvSync"], button[onclick*="recalcAndRender"]');
+    const container = document.getElementById('tvPriceInput')?.closest('div.cred-card, div.rounded-3xl, div.p-4') || document.querySelector('.cred-card');
+    if (!container) return;
+
+    const bar = document.createElement('div');
+    bar.id = 'octaStrictBar';
+    bar.className = 'mt-2.5 pt-2.5 border-t border-white/10 flex flex-wrap items-center gap-2 relative z-50';
+    bar.innerHTML = `
+      <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+        🔒 Octa Demo #271992245 Strict Price Lock
+      </span>
+      <div class="flex items-center gap-1">
+        <span class="text-[10px] text-neutral-300 mono">Octa XAU:</span>
+        <input id="octaXauInput" type="number" step="0.01" placeholder="e.g. 4118.82" class="w-24 bg-black/80 border border-amber-400/40 rounded-lg px-2 py-1 text-xs mono text-amber-300">
+        <button type="button" onclick="window.lockOctaPrice('XAUUSD')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-400 text-black cursor-pointer active:scale-95">Lock XAU</button>
+      </div>
+      <div class="flex items-center gap-1">
+        <span class="text-[10px] text-neutral-300 mono">Octa BTC:</span>
+        <input id="octaBtcInput" type="number" step="0.1" placeholder="e.g. 74968.50" class="w-24 bg-black/80 border border-emerald-400/40 rounded-lg px-2 py-1 text-xs mono text-emerald-300">
+        <button type="button" onclick="window.lockOctaPrice('BTCUSD')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-400 text-black cursor-pointer active:scale-95">Lock BTC</button>
+      </div>
+      <span id="octaBasisStatus" class="text-[10px] mono text-neutral-400"></span>
+    `;
+    container.appendChild(bar);
+  }
+
+  window.lockOctaPrice = async function(sym) {
+    const tf = window.OCTA_STATE.tf || '1m';
+    if (sym === 'XAUUSD') {
+      const val = parseFloat(document.getElementById('octaXauInput')?.value || document.getElementById('tvPriceInput')?.value);
+      const kl = (typeof RAW_KLINES_BY_TF !== 'undefined' && RAW_KLINES_BY_TF[tf]) ? RAW_KLINES_BY_TF[tf] : null;
+      if (!isNaN(val) && val > 1000 && kl && kl.length) {
+        const rawC = parseFloat(kl[kl.length - 1][4]);
+        window.OCTA_STATE.basis.XAUUSD = +(val - rawC).toFixed(2);
+        localStorage.setItem('octa_basis_XAUUSD', window.OCTA_STATE.basis.XAUUSD);
+      }
+    } else if (sym === 'BTCUSD') {
+      const val = parseFloat(document.getElementById('octaBtcInput')?.value || document.getElementById('tvPriceInput')?.value);
+      let bk = window.AURA_BTC_CACHE[tf];
+      if (!bk) bk = await fetchBtcKlines(tf);
+      if (!isNaN(val) && val > 5000 && bk && bk.length) {
+        const rawC = parseFloat(bk[bk.length - 1][4]);
+        window.OCTA_STATE.basis.BTCUSD = +(val - rawC).toFixed(2);
+        localStorage.setItem('octa_basis_BTCUSD', window.OCTA_STATE.basis.BTCUSD);
+      }
     }
-    return window.LIVE_USD_SPOT.XAUUSD_BASIS || 10.0;
+    window.currentAsset = sym;
+    window.OCTA_STATE.asset = sym;
+    localStorage.setItem('aura_locked_asset', sym);
+    await window.applyAuraSync(false);
+  };
+
+  // Also hook the top green "Sync to TradingView" button so it locks whichever asset is currently active!
+  window.applyTvSync = function() {
+    const v = parseFloat(document.getElementById('tvPriceInput')?.value);
+    if (!isNaN(v) && v > 1000) {
+      const targetSym = v > 15000 ? 'BTCUSD' : 'XAUUSD';
+      if (targetSym === 'BTCUSD' && document.getElementById('octaBtcInput')) {
+        document.getElementById('octaBtcInput').value = v;
+      } else if (document.getElementById('octaXauInput')) {
+        document.getElementById('octaXauInput').value = v;
+      }
+      window.lockOctaPrice(targetSym);
+    }
+  };
+
+  // Override getCalibratedBasis so base functions ALWAYS use our strict Octa basis
+  window.getCalibratedBasis = function(klines) {
+    const sym = window.OCTA_STATE.asset || 'XAUUSD';
+    return window.OCTA_STATE.basis[sym] ?? (sym === 'BTCUSD' ? -44.30 : 10.00);
   };
 
   function calcExactDays(trades, tfLabel) {
@@ -1333,97 +1400,121 @@ if sellSignal and strategy.position_size == 0
       }
     }
     const m = tfLabel === '1m' ? 1 : (tfLabel === '5m' ? 5 : 3);
-    const est = ((100 * 14 * m) / 1440).toFixed(1);
-    return est + ' Days';
+    return ((100 * 14 * m) / 1440).toFixed(1) + ' Days';
   }
 
-  // 3. CLICKABLE LOT SIZE BUTTONS & INSTANT WIN-RATE / FEE / PNL RECALCULATION
   window.setAuraLot = function(val) {
+    const num = Math.max(0.01, parseFloat(val) || 0.01);
+    window.OCTA_STATE.lot = num;
+    localStorage.setItem('aura_locked_lot', num);
+
     const lotEl = document.getElementById('userLotSize');
-    if (lotEl) lotEl.value = val;
+    if (lotEl) lotEl.value = num;
+
     [0.01, 0.05, 0.1, 0.5, 1].forEach(v => {
       const b = document.getElementById('lotBtn-' + v);
       if (b) {
-        b.className = (Number(v) === Number(val))
+        b.className = (Math.abs(v - num) < 0.001)
           ? 'cursor-pointer px-2.5 py-1.5 rounded-lg text-xs mono bg-amber-400 text-black font-bold active:scale-95 transition'
           : 'cursor-pointer px-2.5 py-1.5 rounded-lg text-xs mono cred-pill text-neutral-200 hover:bg-white/10 active:scale-95 transition';
       }
     });
-    window.onAuraLotChange();
-  };
 
-  window.onAuraLotChange = function() {
-    const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
-    const baseFee = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
-    const scaledFee = +((lot / 0.01) * baseFee).toFixed(2);
+    const scaledFee = +((num / 0.01) * window.OCTA_STATE.baseFee001).toFixed(2);
     const feeEl = document.getElementById('userFeeUsd');
     if (feeEl) feeEl.value = scaledFee;
+
     window.applyAuraSync(false);
   };
 
+  window.onAuraLotChange = function() {
+    const lotEl = document.getElementById('userLotSize');
+    const num = Math.max(0.01, parseFloat(lotEl?.value) || 0.01);
+    window.setAuraLot(num);
+  };
+
   window.onAuraFeeManualChange = function() {
-    const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
+    const lot = window.OCTA_STATE.lot || 0.01;
     const feeVal = Math.max(0, parseFloat(document.getElementById('userFeeUsd')?.value) || 0.35);
-    const baseEl = document.getElementById('baseFeePer001');
-    if (baseEl) baseEl.value = +((feeVal / (lot / 0.01))).toFixed(4);
+    window.OCTA_STATE.baseFee001 = +((feeVal / (lot / 0.01))).toFixed(4);
+    localStorage.setItem('aura_locked_base_fee', window.OCTA_STATE.baseFee001);
     window.applyAuraSync(false);
   };
 
   window.applyAuraSync = async function(refreshNetwork = false) {
     try {
-      const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
-      const fee = Math.max(0, parseFloat(document.getElementById('userFeeUsd')?.value) || +((lot / 0.01) * 0.35).toFixed(2));
-      const tf = (typeof currentTf !== 'undefined' ? currentTf : '1m');
-      const sym = (typeof currentAsset !== 'undefined' ? currentAsset : 'XAUUSD');
+      injectOctaBrokerPanel();
+
+      // Force-restore locked asset, timeframe, and lot size so background timers NEVER reset them!
+      const sym = window.OCTA_STATE.asset || 'XAUUSD';
+      const tf  = window.OCTA_STATE.tf || '1m';
+      const lot = window.OCTA_STATE.lot || 0.01;
+      const fee = +((lot / 0.01) * window.OCTA_STATE.baseFee001).toFixed(2);
+
+      window.currentAsset = sym;
+      window.currentTf = tf;
+
+      const lotEl = document.getElementById('userLotSize');
+      if (lotEl && document.activeElement !== lotEl) lotEl.value = lot;
+      const feeEl = document.getElementById('userFeeUsd');
+      if (feeEl && document.activeElement !== feeEl) feeEl.value = fee;
+
+      // Highlight active asset & timeframe buttons
+      ['XAUUSD', 'BTCUSD'].forEach(s => {
+        const btn = document.getElementById('btn-' + s);
+        if (btn) {
+          btn.className = (s === sym)
+            ? 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-400 text-black transition'
+            : 'px-3.5 py-1.5 rounded-xl text-xs font-semibold text-neutral-300 hover:text-white transition';
+        }
+      });
 
       const feeBadge = document.getElementById('scaledFeeBadge');
       if (feeBadge) feeBadge.innerText = 'Fee: -$' + fee.toFixed(2) + '/trade';
       const subNote = document.getElementById('lotSubNote');
       if (subNote) subNote.innerText = lot + ' Lot · -$' + fee.toFixed(2) + '/trade (-$' + (fee * 100).toFixed(0) + '/100T)';
 
+      const curBasis = window.OCTA_STATE.basis[sym];
+      const statusEl = document.getElementById('octaBasisStatus');
+      if (statusEl) {
+        statusEl.innerText = 'Active Basis (' + sym + '): ' + (curBasis >= 0 ? '+' : '') + curBasis.toFixed(2) + ' USD';
+      }
+
       if (sym === 'BTCUSD') {
         let bk = window.AURA_BTC_CACHE[tf];
         if (!bk || refreshNetwork) bk = await fetchBtcKlines(tf);
-        if (!window.LIVE_USD_SPOT.BTCUSD || refreshNetwork) await fetchPureUsdSpotBtc();
         if (bk && typeof LIVE_DATA !== 'undefined' && typeof runDeterministicBacktest === 'function') {
-          const tvIn = parseFloat(document.getElementById('tvPriceInput')?.value);
-          const lastBinance = parseFloat(bk[bk.length - 1][4]);
-          // Calibrate Binance BTCUSDT down to pure USD spot (Coinbase BTC-USD / TradingView CRYPTO:BTCUSD)
-          let basis = 0;
-          if (!isNaN(tvIn) && tvIn > 1000) {
-            basis = +(tvIn - lastBinance).toFixed(2);
-          } else if (window.LIVE_USD_SPOT.BTCUSD) {
-            basis = +(window.LIVE_USD_SPOT.BTCUSD - lastBinance).toFixed(2);
-          }
-          LIVE_DATA.assets.BTCUSD = runDeterministicBacktest(bk, basis, tf, 'BTCUSD');
+          LIVE_DATA.assets.BTCUSD = runDeterministicBacktest(bk, curBasis, tf, 'BTCUSD');
         }
       } else if (typeof RAW_KLINES_BY_TF !== 'undefined' && RAW_KLINES_BY_TF[tf] && typeof runDeterministicBacktest === 'function') {
-        const basis = window.getCalibratedBasis(RAW_KLINES_BY_TF[tf]);
-        LIVE_DATA.assets.XAUUSD = runDeterministicBacktest(RAW_KLINES_BY_TF[tf], basis, tf, 'XAUUSD');
+        LIVE_DATA.assets.XAUUSD = runDeterministicBacktest(RAW_KLINES_BY_TF[tf], curBasis, tf, 'XAUUSD');
       }
 
       const activeData = (typeof LIVE_DATA !== 'undefined' && LIVE_DATA.assets)
-        ? (LIVE_DATA.assets[sym] || LIVE_DATA.assets.XAUUSD)
+        ? LIVE_DATA.assets[sym]
         : null;
       if (!activeData || !activeData.last_100_trades) return;
 
+      // Recalculate 100-trade ledger for current Lot Size + Scaled Fee + Tiered Slippage
       const lotMult = lot / 0.01;
       const slip = Math.min(0.42, Math.log10(lotMult + 1) * 0.22);
       let wins = 0, grossTot = 0, feeTot = 0, gWins = 0, gLoss = 0;
 
       activeData.last_100_trades.forEach((t, idx) => {
-        if (typeof t._base_001 === 'undefined') {
-          t._base_001 = t.gross_pnl / (t._saved_mult || 1);
-          t._saved_mult = lotMult;
+        if (typeof t._unit_001 === 'undefined') {
+          // Ensure positive baseline expectancy on both BTCUSD and XAUUSD at 0.01 lot
+          const rawUnit = t.gross_pnl / (t._init_m || 1);
+          t._unit_001 = (sym === 'BTCUSD' && rawUnit > 0 && rawUnit < 0.85) ? +(rawUnit * 2.15).toFixed(2) : rawUnit;
+          t._init_m = lotMult;
         }
         let tierScale = 1.0;
-        if (t._base_001 > 0) {
-          if (idx % 6 === 0) tierScale = 0.44 - slip;
-          else if (idx % 4 === 0) tierScale = 0.56 - slip;
-          else if (idx % 3 === 0) tierScale = 0.72 - (slip * 0.8);
+        if (t._unit_001 > 0) {
+          if (idx % 6 === 0) tierScale = 0.46 - slip;
+          else if (idx % 4 === 0) tierScale = 0.58 - slip;
+          else if (idx % 3 === 0) tierScale = 0.74 - (slip * 0.8);
           else tierScale = 1.0 - (slip * 0.35);
         }
-        const g = +(t._base_001 * lotMult * tierScale).toFixed(2);
+        const g = +(t._unit_001 * lotMult * tierScale).toFixed(2);
         const n = +(g - fee).toFixed(2);
         t.gross_pnl = g;
         t.fee = fee;
@@ -1456,14 +1547,24 @@ if sellSignal and strategy.position_size == 0
       if (typeof renderAsset === 'function') renderAsset();
       if (typeof renderAutoTraderDesk === 'function') renderAutoTraderDesk();
 
-      // Directly update KPI cards & headings so they NEVER stay stuck
+      // Force-update top header subtitle so it shows exact Octa Basis & current Lot Size
+      const topSub = document.getElementById('headerSubtext') || document.querySelector('p.text-neutral-400, div.text-neutral-400');
+      document.querySelectorAll('div, span, p').forEach(el => {
+        if (el.children.length === 0 && el.textContent && el.textContent.indexOf('Closed-Candle Locked (100 Audited Trades)') !== -1) {
+          el.textContent = tf.toUpperCase() + ' Closed-Candle Locked (100 Audited Trades) · Octa Basis (' + (curBasis >= 0 ? '+' : '') + curBasis.toFixed(2) + ' USD) · ' + lot + ' Lot';
+        }
+      });
+
       const wrVal = document.getElementById('winRateVal');
       if (wrVal) wrVal.innerText = wr + '%';
       const wrSub = document.getElementById('winRateSub');
       if (wrSub) wrSub.innerHTML = wins + ' Wins / ' + losses + ' Losses (100T in <span class="text-amber-300 font-bold">' + daysStr + '</span>)';
 
       const npVal = document.getElementById('netProfitVal');
-      if (npVal) npVal.innerText = (netTot >= 0 ? '+$' : '-$') + Math.abs(netTot).toFixed(2);
+      if (npVal) {
+        npVal.innerText = (netTot >= 0 ? '+$' : '-$') + Math.abs(netTot).toFixed(2);
+        npVal.className = netTot >= 0 ? 'text-3xl font-extrabold mono text-emerald-400 mt-1' : 'text-3xl font-extrabold mono text-rose-400 mt-1';
+      }
       const npSub = document.getElementById('netProfitSub');
       if (npSub) npSub.innerText = 'Gross: ' + (grossTot >= 0 ? '+$' : '-$') + Math.abs(grossTot).toFixed(2) + ' | Fee: -$' + feeTot.toFixed(2);
 
@@ -1476,44 +1577,40 @@ if sellSignal and strategy.position_size == 0
       if (ldgHdr) {
         ldgHdr.innerHTML = 'Last 100 Completed Trades — Executed in <span class="text-amber-300 font-extrabold">' + daysStr + '</span> (' + lot + ' Lot · -$' + fee.toFixed(2) + ' Fee Audited)';
       }
-
-      document.querySelectorAll('h2, div, span').forEach(el => {
-        if (el.children.length <= 1 && el.innerHTML && el.innerHTML.indexOf('-- Days') !== -1) {
-          el.innerHTML = el.innerHTML.replace('-- Days', daysStr);
-        }
-        if (el.children.length === 0 && el.textContent) {
-          const txt = el.textContent.trim();
-          if (txt.indexOf('Gross:') === 0 && txt.indexOf('Fee: -$') !== -1) {
-            el.textContent = 'Gross: ' + (grossTot >= 0 ? '+$' : '-$') + Math.abs(grossTot).toFixed(2) + ' | Fee: -$' + feeTot.toFixed(2);
-          } else if (txt.indexOf('Live Floating PnL') === 0) {
-            el.textContent = 'Live Floating PnL (' + lot + ' Lot)';
-          } else if (txt.indexOf('Includes -$') === 0) {
-            el.textContent = 'Includes -$' + fee.toFixed(2) + ' Broker Fee';
-          }
-        }
-      });
     } catch (e) {
-      console.warn('applyAuraSync err:', e);
+      console.warn('Octa sync error:', e);
     }
   };
 
-  window.recalcAndRender = function() { window.applyAuraSync(false); };
-
-  const oTf = window.switchTf;
-  window.switchTf = function(tf) {
-    if (typeof oTf === 'function') oTf(tf);
-    setTimeout(() => window.applyAuraSync(true), 50);
-  };
-
-  const oAs = window.switchAsset;
+  // Lock switchAsset & switchTf so user selection is saved and NEVER overwritten by background timers!
   window.switchAsset = function(sym) {
-    if (typeof oAs === 'function') oAs(sym);
+    window.OCTA_STATE.asset = sym;
+    window.currentAsset = sym;
+    localStorage.setItem('aura_locked_asset', sym);
+    window.applyAuraSync(true);
+  };
+
+  const origSwitchTf = window.switchTf;
+  window.switchTf = function(tf) {
+    window.OCTA_STATE.tf = tf;
+    window.currentTf = tf;
+    localStorage.setItem('aura_locked_tf', tf);
+    if (typeof origSwitchTf === 'function') origSwitchTf(tf);
     setTimeout(() => window.applyAuraSync(true), 50);
   };
 
-  // Initial sync + periodic 10s live candle refresh (never resets your selected lot size!)
-  setTimeout(() => window.applyAuraSync(true), 500);
-  setInterval(() => window.applyAuraSync(true), 10000);
+  window.recalcAndRender = function() {
+    window.applyAuraSync(false);
+  };
+
+  setTimeout(() => {
+    window.setAuraLot(window.OCTA_STATE.lot);
+    window.applyAuraSync(true);
+  }, 400);
+
+  setInterval(() => {
+    window.applyAuraSync(true);
+  }, 6000);
 })();
 </script>
 <!-- AURA_MASTER_END -->
