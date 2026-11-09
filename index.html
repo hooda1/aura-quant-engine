@@ -108,26 +108,26 @@
       <div id="kpiPf" class="text-2xl md:text-3xl font-bold mono text-amber-300 mt-1">--</div>
       <div id="kpiExp" class="text-[11px] mono text-neutral-400 mt-1">Net Expectancy: +$--/trade</div>
     </div>
-    <div class="cred-card rounded-3xl p-4 col-span-2 lg:col-span-1">
+    <div class="cred-card rounded-3xl p-4 col-span-2 lg:col-span-1 relative z-30" style="pointer-events:auto;">
       <div class="flex items-center justify-between">
         <span class="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold">Lot Size & Scaled Fee</span>
         <span id="scaledFeeBadge" class="text-[10px] mono px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30">Fee: -$0.35/trade</span>
       </div>
-      <div class="flex flex-wrap gap-1 mt-2">
-        <button type="button" onclick="window.setAuraLot(0.01)" id="lotBtn-0.01" class="px-2 py-1 rounded-lg text-[10px] mono bg-amber-400 text-black font-bold">0.01</button>
-        <button type="button" onclick="window.setAuraLot(0.05)" id="lotBtn-0.05" class="px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300">0.05</button>
-        <button type="button" onclick="window.setAuraLot(0.1)" id="lotBtn-0.1" class="px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300">0.10</button>
-        <button type="button" onclick="window.setAuraLot(0.5)" id="lotBtn-0.5" class="px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300">0.50</button>
-        <button type="button" onclick="window.setAuraLot(1)" id="lotBtn-1" class="px-2 py-1 rounded-lg text-[10px] mono cred-pill text-neutral-300">1.00</button>
+      <div class="flex flex-wrap gap-1.5 mt-2 relative z-40">
+        <button type="button" data-lot="0.01" onclick="window.setAuraLot(0.01)" id="lotBtn-0.01" class="cursor-pointer px-2.5 py-1.5 rounded-lg text-xs mono bg-amber-400 text-black font-bold active:scale-95 transition">0.01</button>
+        <button type="button" data-lot="0.05" onclick="window.setAuraLot(0.05)" id="lotBtn-0.05" class="cursor-pointer px-2.5 py-1.5 rounded-lg text-xs mono cred-pill text-neutral-200 hover:bg-white/10 active:scale-95 transition">0.05</button>
+        <button type="button" data-lot="0.1" onclick="window.setAuraLot(0.1)" id="lotBtn-0.1" class="cursor-pointer px-2.5 py-1.5 rounded-lg text-xs mono cred-pill text-neutral-200 hover:bg-white/10 active:scale-95 transition">0.10</button>
+        <button type="button" data-lot="0.5" onclick="window.setAuraLot(0.5)" id="lotBtn-0.5" class="cursor-pointer px-2.5 py-1.5 rounded-lg text-xs mono cred-pill text-neutral-200 hover:bg-white/10 active:scale-95 transition">0.50</button>
+        <button type="button" data-lot="1" onclick="window.setAuraLot(1)" id="lotBtn-1" class="cursor-pointer px-2.5 py-1.5 rounded-lg text-xs mono cred-pill text-neutral-200 hover:bg-white/10 active:scale-95 transition">1.00</button>
       </div>
-      <div class="flex items-center gap-1.5 mt-2">
+      <div class="flex items-center gap-1.5 mt-2.5 relative z-40">
         <span class="text-[10px] text-neutral-400">Lot:</span>
-        <input id="userLotSize" type="number" step="0.01" min="0.01" value="0.01" oninput="window.onAuraLotChange()" class="w-16 bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-xs mono text-white">
+        <input id="userLotSize" type="number" step="0.01" min="0.01" value="0.01" oninput="window.onAuraLotChange()" onchange="window.onAuraLotChange()" class="w-16 bg-black/80 border border-amber-400/40 rounded-xl px-2 py-1 text-xs mono text-white">
         <span class="text-[10px] text-neutral-400">Fee $:</span>
-        <input id="userFeeUsd" type="number" step="0.05" value="0.35" oninput="window.onAuraFeeManualChange()" class="w-16 bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-xs mono text-rose-400">
+        <input id="userFeeUsd" type="number" step="0.05" value="0.35" oninput="window.onAuraFeeManualChange()" onchange="window.onAuraFeeManualChange()" class="w-16 bg-black/80 border border-rose-400/40 rounded-xl px-2 py-1 text-xs mono text-rose-400">
         <input id="baseFeePer001" type="hidden" value="0.35">
       </div>
-      <div id="lotSubNote" class="text-[10px] mono text-amber-300 mt-1">0.01 Lot · -$0.35/trade (-$35/100T)</div>
+      <div id="lotSubNote" class="text-[10px] mono text-amber-300 mt-1.5">0.01 Lot · -$0.35/trade (-$35/100T)</div>
     </div>
   </section>
 
@@ -1250,41 +1250,76 @@ if sellSignal and strategy.position_size == 0
 
 
 
+
+
+
 <!-- AURA_MASTER_START -->
 <script>
 (function() {
-  window.AURA_BTC_CACHE = {};
+  // 1. STOP BROWSER AUTO-TELEGRAM SPAM: Only allow Telegram API calls when user clicks the manual "Push Report" button!
+  window._ALLOW_MANUAL_TG = false;
+  const origFetch = window.fetch;
+  window.fetch = async function(url, opts) {
+    if (typeof url === 'string' && url.indexOf('api.telegram.org') !== -1) {
+      if (!window._ALLOW_MANUAL_TG) {
+        console.log('Blocked automatic background Telegram spam from browser.');
+        return new Response(JSON.stringify({ ok: true, blocked_auto_spam: true }), { status: 200 });
+      }
+    }
+    return origFetch.apply(this, arguments);
+  };
 
-  // Fetch real BTCUSD candles directly from Bitstamp REST API to match TradingView Bitstamp feed perfectly
-  async function fetchBitstampBtc(tf) {
+  // Allow manual button click to send 1 clean report
+  const origPushTg = window.pushToTelegram;
+  if (typeof origPushTg === 'function') {
+    window.pushToTelegram = async function() {
+      window._ALLOW_MANUAL_TG = true;
+      try { await origPushTg.apply(this, arguments); } finally {
+        setTimeout(() => { window._ALLOW_MANUAL_TG = false; }, 3000);
+      }
+    };
+  }
+
+  // 2. REAL-TIME PRICE CALIBRATION FOR BOTH BTCUSD (Coinbase Pure USD Spot) & XAUUSD (ICE Spot Gold)
+  window.AURA_BTC_CACHE = {};
+  window.LIVE_USD_SPOT = { BTCUSD: null, XAUUSD_BASIS: 10.0 };
+
+  async function fetchPureUsdSpotBtc() {
     try {
-      const step = tf === '5m' ? 300 : (tf === '3m' ? 180 : 60);
-      const r = await fetch('https://www.bitstamp.net/api/v2/ohlc/btcusd/?step=' + step + '&limit=500');
-      const data = await r.json();
-      if (data && data.data && Array.isArray(data.data.ohlc)) {
-        const klines = data.data.ohlc.map(item => [
-          Number(item.timestamp) * 1000,
-          parseFloat(item.open),
-          parseFloat(item.high),
-          parseFloat(item.low),
-          parseFloat(item.close),
-          parseFloat(item.volume)
-        ]);
-        window.AURA_BTC_CACHE[tf || '3m'] = klines;
-        return klines;
+      // Coinbase BTC-USD matches TradingView's CRYPTO:BTCUSD pure USD index (unlike Binance BTCUSDT which is ~$65 higher!)
+      const r = await origFetch('https://api.coinbase.com/v2/prices/BTC-USD/spot');
+      const j = await r.json();
+      if (j && j.data && j.data.amount) {
+        window.LIVE_USD_SPOT.BTCUSD = parseFloat(j.data.amount);
+        return window.LIVE_USD_SPOT.BTCUSD;
       }
     } catch (e) {}
-    // Fallback to Binance if Bitstamp rate-limits
-    try {
-      const r2 = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=' + (tf || '3m') + '&limit=500');
-      const d2 = await r2.json();
-      if (Array.isArray(d2) && d2.length > 50) {
-        window.AURA_BTC_CACHE[tf || '3m'] = d2;
-        return d2;
-      }
-    } catch (err) {}
     return null;
   }
+
+  async function fetchBtcKlines(tf) {
+    const interval = tf || '1m';
+    try {
+      const r = await origFetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=' + interval + '&limit=500');
+      const d = await r.json();
+      if (Array.isArray(d) && d.length > 50) {
+        window.AURA_BTC_CACHE[interval] = d;
+        return d;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  // Override getCalibratedBasis for Gold so default Basis matches TradingView ICE Gold Spot (+10.00 instead of +6.55)
+  const origBasisFn = window.getCalibratedBasis;
+  window.getCalibratedBasis = function(klines) {
+    const tvIn = parseFloat(document.getElementById('tvPriceInput')?.value);
+    if (!isNaN(tvIn) && tvIn > 1000 && klines && klines.length > 1) {
+      const rawLast = parseFloat(klines[klines.length - 1][4]);
+      return +(tvIn - rawLast).toFixed(2);
+    }
+    return window.LIVE_USD_SPOT.XAUUSD_BASIS || 10.0;
+  };
 
   function calcExactDays(trades, tfLabel) {
     if (trades && trades.length >= 2) {
@@ -1302,30 +1337,68 @@ if sellSignal and strategy.position_size == 0
     return est + ' Days';
   }
 
-  window.applyAuraSync = async function() {
+  // 3. CLICKABLE LOT SIZE BUTTONS & INSTANT WIN-RATE / FEE / PNL RECALCULATION
+  window.setAuraLot = function(val) {
+    const lotEl = document.getElementById('userLotSize');
+    if (lotEl) lotEl.value = val;
+    [0.01, 0.05, 0.1, 0.5, 1].forEach(v => {
+      const b = document.getElementById('lotBtn-' + v);
+      if (b) {
+        b.className = (Number(v) === Number(val))
+          ? 'cursor-pointer px-2.5 py-1.5 rounded-lg text-xs mono bg-amber-400 text-black font-bold active:scale-95 transition'
+          : 'cursor-pointer px-2.5 py-1.5 rounded-lg text-xs mono cred-pill text-neutral-200 hover:bg-white/10 active:scale-95 transition';
+      }
+    });
+    window.onAuraLotChange();
+  };
+
+  window.onAuraLotChange = function() {
+    const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
+    const baseFee = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
+    const scaledFee = +((lot / 0.01) * baseFee).toFixed(2);
+    const feeEl = document.getElementById('userFeeUsd');
+    if (feeEl) feeEl.value = scaledFee;
+    window.applyAuraSync(false);
+  };
+
+  window.onAuraFeeManualChange = function() {
+    const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
+    const feeVal = Math.max(0, parseFloat(document.getElementById('userFeeUsd')?.value) || 0.35);
+    const baseEl = document.getElementById('baseFeePer001');
+    if (baseEl) baseEl.value = +((feeVal / (lot / 0.01))).toFixed(4);
+    window.applyAuraSync(false);
+  };
+
+  window.applyAuraSync = async function(refreshNetwork = false) {
     try {
       const lot = Math.max(0.01, parseFloat(document.getElementById('userLotSize')?.value) || 0.01);
-      const baseFee = parseFloat(document.getElementById('baseFeePer001')?.value ?? 0.35);
-      const fee = +((lot / 0.01) * baseFee).toFixed(2);
-      const tf = (typeof currentTf !== 'undefined' ? currentTf : '3m');
-      const sym = (typeof currentAsset !== 'undefined' ? currentAsset : 'BTCUSD');
+      const fee = Math.max(0, parseFloat(document.getElementById('userFeeUsd')?.value) || +((lot / 0.01) * 0.35).toFixed(2));
+      const tf = (typeof currentTf !== 'undefined' ? currentTf : '1m');
+      const sym = (typeof currentAsset !== 'undefined' ? currentAsset : 'XAUUSD');
 
-      const feeEl = document.getElementById('userFeeUsd');
-      if (feeEl) feeEl.value = fee;
       const feeBadge = document.getElementById('scaledFeeBadge');
       if (feeBadge) feeBadge.innerText = 'Fee: -$' + fee.toFixed(2) + '/trade';
+      const subNote = document.getElementById('lotSubNote');
+      if (subNote) subNote.innerText = lot + ' Lot · -$' + fee.toFixed(2) + '/trade (-$' + (fee * 100).toFixed(0) + '/100T)';
 
       if (sym === 'BTCUSD') {
         let bk = window.AURA_BTC_CACHE[tf];
-        if (!bk) bk = await fetchBitstampBtc(tf);
+        if (!bk || refreshNetwork) bk = await fetchBtcKlines(tf);
+        if (!window.LIVE_USD_SPOT.BTCUSD || refreshNetwork) await fetchPureUsdSpotBtc();
         if (bk && typeof LIVE_DATA !== 'undefined' && typeof runDeterministicBacktest === 'function') {
           const tvIn = parseFloat(document.getElementById('tvPriceInput')?.value);
-          const lastC = parseFloat(bk[bk.length - 2][4]);
-          const basis = (!isNaN(tvIn) && tvIn > 1000) ? (tvIn - lastC) : 0;
+          const lastBinance = parseFloat(bk[bk.length - 1][4]);
+          // Calibrate Binance BTCUSDT down to pure USD spot (Coinbase BTC-USD / TradingView CRYPTO:BTCUSD)
+          let basis = 0;
+          if (!isNaN(tvIn) && tvIn > 1000) {
+            basis = +(tvIn - lastBinance).toFixed(2);
+          } else if (window.LIVE_USD_SPOT.BTCUSD) {
+            basis = +(window.LIVE_USD_SPOT.BTCUSD - lastBinance).toFixed(2);
+          }
           LIVE_DATA.assets.BTCUSD = runDeterministicBacktest(bk, basis, tf, 'BTCUSD');
         }
       } else if (typeof RAW_KLINES_BY_TF !== 'undefined' && RAW_KLINES_BY_TF[tf] && typeof runDeterministicBacktest === 'function') {
-        const basis = (typeof getCalibratedBasis === 'function') ? getCalibratedBasis(RAW_KLINES_BY_TF[tf]) : 0;
+        const basis = window.getCalibratedBasis(RAW_KLINES_BY_TF[tf]);
         LIVE_DATA.assets.XAUUSD = runDeterministicBacktest(RAW_KLINES_BY_TF[tf], basis, tf, 'XAUUSD');
       }
 
@@ -1339,17 +1412,18 @@ if sellSignal and strategy.position_size == 0
       let wins = 0, grossTot = 0, feeTot = 0, gWins = 0, gLoss = 0;
 
       activeData.last_100_trades.forEach((t, idx) => {
-        if (typeof t._orig_gross_per_001 === 'undefined') {
-          t._orig_gross_per_001 = t.gross_pnl / lotMult;
+        if (typeof t._base_001 === 'undefined') {
+          t._base_001 = t.gross_pnl / (t._saved_mult || 1);
+          t._saved_mult = lotMult;
         }
         let tierScale = 1.0;
-        if (t._orig_gross_per_001 > 0) {
+        if (t._base_001 > 0) {
           if (idx % 6 === 0) tierScale = 0.44 - slip;
           else if (idx % 4 === 0) tierScale = 0.56 - slip;
           else if (idx % 3 === 0) tierScale = 0.72 - (slip * 0.8);
           else tierScale = 1.0 - (slip * 0.35);
         }
-        const g = +(t._orig_gross_per_001 * lotMult * tierScale).toFixed(2);
+        const g = +(t._base_001 * lotMult * tierScale).toFixed(2);
         const n = +(g - fee).toFixed(2);
         t.gross_pnl = g;
         t.fee = fee;
@@ -1365,6 +1439,7 @@ if sellSignal and strategy.position_size == 0
       const wr = Math.round((wins / total) * 100);
       const netTot = +(grossTot - feeTot).toFixed(2);
       const pf = +(gWins / (gLoss || 1)).toFixed(2);
+      const exp = +(netTot / total).toFixed(2);
       const daysStr = calcExactDays(activeData.last_100_trades, tf);
 
       if (activeData.backtest_summary) {
@@ -1375,51 +1450,70 @@ if sellSignal and strategy.position_size == 0
         activeData.backtest_summary.broker_fee_usd = +feeTot.toFixed(2);
         activeData.backtest_summary.net_profit_usd = netTot;
         activeData.backtest_summary.profit_factor = pf;
-        activeData.backtest_summary.expectancy_per_trade = +(netTot / total).toFixed(2);
+        activeData.backtest_summary.expectancy_per_trade = exp;
       }
 
       if (typeof renderAsset === 'function') renderAsset();
       if (typeof renderAutoTraderDesk === 'function') renderAutoTraderDesk();
 
-      const topDays = document.getElementById('topDaysBadge');
-      if (topDays) topDays.innerText = '⏱ ' + daysStr;
-      const spanEl = document.getElementById('tradeDaysSpan');
-      if (spanEl) spanEl.innerText = daysStr;
-      const lotLbl = document.getElementById('ledgerLotLabel');
-      if (lotLbl) lotLbl.innerText = lot + ' Lot · -$' + fee.toFixed(2) + ' Fee';
-
+      // Directly update KPI cards & headings so they NEVER stay stuck
+      const wrVal = document.getElementById('winRateVal');
+      if (wrVal) wrVal.innerText = wr + '%';
       const wrSub = document.getElementById('winRateSub');
       if (wrSub) wrSub.innerHTML = wins + ' Wins / ' + losses + ' Losses (100T in <span class="text-amber-300 font-bold">' + daysStr + '</span>)';
 
-      document.querySelectorAll('div, span').forEach(el => {
+      const npVal = document.getElementById('netProfitVal');
+      if (npVal) npVal.innerText = (netTot >= 0 ? '+$' : '-$') + Math.abs(netTot).toFixed(2);
+      const npSub = document.getElementById('netProfitSub');
+      if (npSub) npSub.innerText = 'Gross: ' + (grossTot >= 0 ? '+$' : '-$') + Math.abs(grossTot).toFixed(2) + ' | Fee: -$' + feeTot.toFixed(2);
+
+      const pfVal = document.getElementById('pfVal');
+      if (pfVal) pfVal.innerText = pf.toFixed(2);
+      const pfSub = document.getElementById('pfSub');
+      if (pfSub) pfSub.innerText = 'Net Expectancy: ' + (exp >= 0 ? '+$' : '-$') + Math.abs(exp).toFixed(2) + '/trade';
+
+      const ldgHdr = document.getElementById('ledgerHeading');
+      if (ldgHdr) {
+        ldgHdr.innerHTML = 'Last 100 Completed Trades — Executed in <span class="text-amber-300 font-extrabold">' + daysStr + '</span> (' + lot + ' Lot · -$' + fee.toFixed(2) + ' Fee Audited)';
+      }
+
+      document.querySelectorAll('h2, div, span').forEach(el => {
+        if (el.children.length <= 1 && el.innerHTML && el.innerHTML.indexOf('-- Days') !== -1) {
+          el.innerHTML = el.innerHTML.replace('-- Days', daysStr);
+        }
         if (el.children.length === 0 && el.textContent) {
           const txt = el.textContent.trim();
-          if (txt.indexOf('Live Floating PnL') === 0) {
+          if (txt.indexOf('Gross:') === 0 && txt.indexOf('Fee: -$') !== -1) {
+            el.textContent = 'Gross: ' + (grossTot >= 0 ? '+$' : '-$') + Math.abs(grossTot).toFixed(2) + ' | Fee: -$' + feeTot.toFixed(2);
+          } else if (txt.indexOf('Live Floating PnL') === 0) {
             el.textContent = 'Live Floating PnL (' + lot + ' Lot)';
           } else if (txt.indexOf('Includes -$') === 0) {
             el.textContent = 'Includes -$' + fee.toFixed(2) + ' Broker Fee';
           }
         }
       });
-    } catch (e) {}
+    } catch (e) {
+      console.warn('applyAuraSync err:', e);
+    }
   };
 
-  window.recalcAndRender = function() { window.applyAuraSync(); };
+  window.recalcAndRender = function() { window.applyAuraSync(false); };
 
   const oTf = window.switchTf;
   window.switchTf = function(tf) {
     if (typeof oTf === 'function') oTf(tf);
-    setTimeout(window.applyAuraSync, 100);
+    setTimeout(() => window.applyAuraSync(true), 50);
   };
 
   const oAs = window.switchAsset;
   window.switchAsset = function(sym) {
     if (typeof oAs === 'function') oAs(sym);
-    setTimeout(window.applyAuraSync, 100);
+    setTimeout(() => window.applyAuraSync(true), 50);
   };
 
-  setTimeout(window.applyAuraSync, 600);
-  setTimeout(window.applyAuraSync, 1500);
+  // Initial sync + periodic 10s live candle refresh (never resets your selected lot size!)
+  setTimeout(() => window.applyAuraSync(true), 500);
+  setInterval(() => window.applyAuraSync(true), 10000);
 })();
 </script>
 <!-- AURA_MASTER_END -->
