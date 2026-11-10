@@ -3,335 +3,208 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BOLDFRAME FLOW ENGINE | 2-Stage Identity-Locked AI Video & Avatar Pipeline</title>
+  <title>BOLDFRAME STUDIO | Studio-Grade 9:16 AI Commercial Reels & Brand Avatars</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; background-color: #060911; color: #e2e8f0; }
-    .mono { font-family: 'JetBrains Mono', monospace; }
-    .glass { background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.6); }
-    .glow-emerald { box-shadow: 0 0 25px rgba(16, 185, 129, 0.15); }
-    .glow-amber { box-shadow: 0 0 25px rgba(245, 158, 11, 0.15); }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #050507;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    .serif-lux { font-family: 'Playfair Display', serif; }
+    .cred-card {
+      background: linear-gradient(165deg, rgba(24, 24, 32, 0.9) 0%, rgba(10, 10, 14, 0.95) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85);
+    }
+    .phone-frame {
+      border-radius: 2.4rem;
+      border: 6px solid #27272a;
+      background: #09090b;
+      box-shadow: 0 0 50px rgba(16, 185, 129, 0.14), inset 0 0 12px rgba(255,255,255,0.08);
+      overflow: hidden;
+      aspect-ratio: 9 / 16;
+    }
+    .gold-gradient {
+      background: linear-gradient(135deg, #fde68a 0%, #f59e0b 50%, #d97706 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .wa-pulse {
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: pulse-green 2s infinite;
+    }
+    @keyframes pulse-green {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+      70% { box-shadow: 0 0 0 16px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
   </style>
 </head>
-<body class="min-h-screen selection:bg-emerald-500 selection:text-black">
+<body class="selection:bg-emerald-400 selection:text-black">
 
-  <!-- TOP TELEMETRY NAVBAR (AURA STYLE) -->
-  <nav class="sticky top-0 z-50 glass border-b border-slate-800 px-4 py-3">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+  <!-- LUXURY MINIMALIST HEADER -->
+  <header class="sticky top-0 z-50 backdrop-blur-xl bg-black/75 border-b border-white/10 px-5 py-4">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center font-extrabold text-black text-lg shadow-lg">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-400 to-emerald-400 flex items-center justify-center text-black font-extrabold text-sm">
           BF
         </div>
         <div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-extrabold tracking-tight text-white text-base">BOLDFRAME FLOW ENGINE</span>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold">
-              🔒 100% Real-Face Identity Lock
-            </span>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 mono">
-              ⚡ 2-Stage Pipeline: Nano Banana 2.1 → Omni 1.1
-            </span>
+          <span class="font-extrabold tracking-widest text-sm text-white uppercase">BOLDFRAME</span>
+          <span class="hidden sm:inline-block ml-2 text-[11px] px-2.5 py-0.5 rounded-full bg-white/5 text-amber-300 border border-amber-400/20">
+            Video Creation Partner
+          </span>
+        </div>
+      </div>
+
+      <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20just%20visited%20the%20BoldFrame%20Studio%20website.%20Please%20create%20a%20free%2016-second%20AI%20video%20demo%20for%20my%20product!"
+         target="_blank"
+         class="wa-pulse px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs tracking-wide transition flex items-center gap-1.5">
+        <span>💬 Claim Free 16s Demo on WhatsApp</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-5 py-12 space-y-20">
+
+    <!-- HERO SECTION (APPLE / CRED EDITORIAL STYLE) -->
+    <section class="text-center max-w-3xl mx-auto space-y-6">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span>1 Static Product Photo → Studio 9:16 Commercial Reel in 24 Hours</span>
+      </div>
+
+      <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight leading-[1.1] text-white">
+        Stop Paying ₹25,000 for <span class="serif-lux italic gold-gradient">One</span> Product Shoot.
+      </h1>
+
+      <p class="text-base sm:text-lg text-slate-400 leading-relaxed max-w-2xl mx-auto">
+        Send us a single smartphone photo of your product or founder. We craft a high-converting, studio-lit 9:16 commercial reel or speaking avatar video—and let you **inspect a 16-second preview before you pay a single rupee.**
+      </p>
+
+      <div class="pt-3 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20want%20to%20see%20a%20free%2016-second%20commercial%20video%20demo%20for%20our%20brand.%20Here%20is%20our%20website%2Fproduct%3A%20"
+           target="_blank"
+           class="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-extrabold text-sm tracking-wide shadow-xl hover:scale-[1.02] transition">
+          📲 Tap to Request Your Free 16s Demo on WhatsApp →
+        </a>
+        <div class="text-xs text-slate-400">
+          Flat <strong class="text-white">₹1,200 / Finished Reel</strong> · Pay Only After Demo Approval
+        </div>
+      </div>
+    </section>
+
+    <!-- LIVE 3-PHONE VIDEO SHOWCASE GALLERY -->
+    <section class="space-y-6">
+      <div class="text-center space-y-1">
+        <div class="text-xs uppercase tracking-widest text-amber-400 font-bold">Unedited Studio Output</div>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Watch Real 9:16 Reels Generated by Our Pipeline</h2>
+        <p class="text-xs text-slate-400">Tap any phone screen below to unmute audio & hear natural Hindi/English voiceover.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto pt-4">
+        <!-- Phone 1 -->
+        <div class="cred-card rounded-3xl p-5 flex flex-col items-center space-y-4">
+          <div class="w-full flex items-center justify-between text-xs text-slate-400 px-1">
+            <span class="font-bold text-white">01 · Luxury Bottle Ad</span>
+            <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold">100% Label Lock</span>
           </div>
-          <p class="text-xs text-slate-400 mt-0.5">
-            Zero-Spam Studio Pipeline · Turn 1 Real Photo into Studio 9:16 Hindi/English Avatar & Product Reels
+          <div class="phone-frame w-60 relative">
+            <video src="assets/showcase_1.mp4" autoplay loop muted playsinline controls class="w-full h-full object-cover"></video>
+          </div>
+          <p class="text-xs text-slate-400 text-center">
+            Generated from a single flat catalog photo into a cinematic sunlit botanical commercial.
+          </p>
+        </div>
+
+        <!-- Phone 2 -->
+        <div class="cred-card rounded-3xl p-5 flex flex-col items-center space-y-4 border-amber-500/30">
+          <div class="w-full flex items-center justify-between text-xs text-slate-400 px-1">
+            <span class="font-bold text-white">02 · Speaking Brand Avatar</span>
+            <span class="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-semibold">Hindi / English Lip-Sync</span>
+          </div>
+          <div class="phone-frame w-60 relative">
+            <video src="assets/showcase_2.mp4" autoplay loop muted playsinline controls class="w-full h-full object-cover"></video>
+          </div>
+          <p class="text-xs text-slate-400 text-center">
+            1 real portrait photo transformed into an authentic educator speaking pure Hindi with natural gestures.
+          </p>
+        </div>
+
+        <!-- Phone 3 -->
+        <div class="cred-card rounded-3xl p-5 flex flex-col items-center space-y-4">
+          <div class="w-full flex items-center justify-between text-xs text-slate-400 px-1">
+            <span class="font-bold text-white">03 · D2C High-ROAS Hook</span>
+            <span class="px-2 py-0.5 rounded bg-sky-500/15 text-sky-400 font-semibold">9:16 Ready for Meta Ads</span>
+          </div>
+          <div class="phone-frame w-60 relative">
+            <video src="assets/showcase_3.mp4" autoplay loop muted playsinline controls class="w-full h-full object-cover"></video>
+          </div>
+          <p class="text-xs text-slate-400 text-center">
+            Engineered for Instagram Reels, YouTube Shorts & Meta Ad campaigns with broadcast audio.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW OUR RISK-FREE 3-STEP DEAL WORKS -->
+    <section class="cred-card rounded-3xl p-8 sm:p-10 space-y-8">
+      <div class="max-w-2xl space-y-2">
+        <div class="text-xs font-bold uppercase tracking-widest text-emerald-400">Zero Risk. Zero Retainers.</div>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Why 100+ Emerging Indian Brands Trust BoldFrame</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
+          <div class="text-xs font-bold text-amber-400">STEP 01 · FREE 16s PREVIEW</div>
+          <div class="text-lg font-bold text-white">Send 1 Product Photo</div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Share your product link or photo on WhatsApp. We craft a custom 16-second watermarked demo so you can judge the quality with your own eyes first.
+          </p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
+          <div class="text-xs font-bold text-emerald-400">STEP 02 · 30% ADVANCE ONLY</div>
+          <div class="text-lg font-bold text-white">Approve Demo & Lock Production</div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Only if you love the 16-second preview, pay a 30% advance (₹360) via PayTM/UPI to lock in your full High-Definition commercial reel.
+          </p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
+          <div class="text-xs font-bold text-sky-400">STEP 03 · UNWATERMARKED HD</div>
+          <div class="text-lg font-bold text-white">24-Hour Master Delivery</div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Receive your full-length, unwatermarked 9:16 HD Master Reel ready to run on Meta Ads, Instagram Reels, and YouTube Shorts.
           </p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <a href="#script-builder" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition">
-          🧠 Free Script & Prompt Tool
+      <!-- MASSIVE WHATSAPP CONVERSION BANNER -->
+      <div class="p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-slate-900 to-black border border-emerald-500/40 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="space-y-1 text-center md:text-left">
+          <div class="text-lg sm:text-xl font-extrabold text-white">Want to see your product in a 9:16 Commercial Reel today?</div>
+          <p class="text-xs sm:text-sm text-slate-300">Tap the button to open WhatsApp (+91 7011165545) with an instant demo request.</p>
+        </div>
+        <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20saw%20your%20BoldFrame%20Studio%20showcase%20and%20would%20love%20to%20see%20a%2016-second%20demo%20video%20for%20our%20product!"
+           target="_blank"
+           class="wa-pulse whitespace-nowrap px-7 py-4 rounded-full bg-emerald-400 hover:bg-emerald-300 text-black font-extrabold text-sm transition">
+          💬 Start on WhatsApp (+91 7011165545) →
         </a>
-        <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20checked%20your%20BoldFrame%20Flow%20Engine%20dashboard%20and%20want%20to%20create%20an%20AI%20reel." target="_blank" class="px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition shadow-md">
-          💬 Book 1 Reel (₹1,200)
-        </a>
-      </div>
-    </div>
-  </nav>
-
-  <!-- LIVE PIPELINE STATUS BAR -->
-  <div class="bg-slate-900/90 border-b border-slate-800 px-4 py-2 text-xs">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-2">
-        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold mono">TELEGRAM GATE ACTIVE</span>
-        <span class="text-slate-300">Every frame is human-verified via Telegram Approval Gate before spending compute credits.</span>
-      </div>
-      <div class="mono text-slate-400">
-        Audio Standard: <span class="text-emerald-400">-16 LUFS Broadcast Normalized · 720x1280 (9:16)</span>
-      </div>
-    </div>
-  </div>
-
-  <main class="max-w-7xl mx-auto px-4 py-8 space-y-10">
-
-    <!-- HERO + METRICS STRIP -->
-    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="glass rounded-2xl p-5 glow-emerald">
-        <div class="text-xs text-slate-400 font-medium">Stage 1: Scene Likeness Lock</div>
-        <div class="text-2xl font-extrabold text-white mt-1 mono">100% True Face</div>
-        <div class="text-xs text-emerald-400 mt-1">Preserves glasses, nose pin, skin & attire</div>
-      </div>
-      <div class="glass rounded-2xl p-5">
-        <div class="text-xs text-slate-400 font-medium">Stage 2: Rhythm-Locked Lip-Sync</div>
-        <div class="text-2xl font-extrabold text-white mt-1 mono">12–14 Words / 8s</div>
-        <div class="text-xs text-amber-300 mt-1">Zero mid-sentence cutoffs in Hindi & English</div>
-      </div>
-      <div class="glass rounded-2xl p-5">
-        <div class="text-xs text-slate-400 font-medium">DIY Subscription Waste Saved</div>
-        <div class="text-2xl font-extrabold text-emerald-400 mt-1 mono">Save ₹3,300+/mo</div>
-        <div class="text-xs text-slate-400 mt-1">No failed generations or wasted credits</div>
-      </div>
-      <div class="glass rounded-2xl p-5 glow-amber border-amber-500/40">
-        <div class="text-xs text-amber-300 font-semibold">TransparentDone-For-You Rate</div>
-        <div class="text-2xl font-extrabold text-white mt-1 mono">₹1,200 <span class="text-xs font-normal text-slate-400">/ Full Reel</span></div>
-        <div class="text-xs text-slate-300 mt-1">Covers Google Flow Compute + Studio Mastering</div>
-      </div>
-    </section>
-
-    <!-- TRANSPARENT COST & ROI CALCULATOR + HOW IT WORKS -->
-    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div class="lg:col-span-7 glass rounded-2xl p-6 space-y-4">
-        <div class="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Why Creators & Clinics Use Our Pipeline</span>
-            <h2 class="text-xl font-bold text-white mt-0.5">2-Stage Telegram-Verified Architecture (Zero Credit Waste)</h2>
-          </div>
-          <span class="text-xs mono px-2.5 py-1 rounded bg-slate-800 text-slate-300">Ubuntu Proot + Playwright + FFmpeg</span>
-        </div>
-
-        <p class="text-sm text-slate-300 leading-relaxed">
-          Most creators buy expensive AI video subscriptions and burn 60% of their credits because the AI changes the person's face or cuts off Hindi speech mid-sentence. We built an automated pipeline that locks your exact reference photo first and pauses on Telegram for manual inspection before rendering video.
-        </p>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-          <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800">
-            <div class="text-xs font-bold text-emerald-400 mono">STEP 01 · REFERENCE LOCK</div>
-            <div class="text-sm font-semibold text-white mt-1">1 Photo → 3 Scene Frames</div>
-            <p class="text-xs text-slate-400 mt-1">We inject your real photo into Nano Banana 2.1 to generate 3 custom scene backgrounds while keeping your face 100% untouched.</p>
-          </div>
-          <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800">
-            <div class="text-xs font-bold text-amber-400 mono">STEP 02 · TELEGRAM GATE</div>
-            <div class="text-sm font-semibold text-white mt-1">Human Approval Gate</div>
-            <p class="text-xs text-slate-400 mt-1">Our bot sends a live preview screenshot to Telegram and halts until approved—guaranteeing zero deformed faces or wasted compute.</p>
-          </div>
-          <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800">
-            <div class="text-xs font-bold text-sky-400 mono">STEP 03 · FFMPEG MASTER</div>
-            <div class="text-sm font-semibold text-white mt-1">Seamless 24s Viral Reel</div>
-            <p class="text-xs text-slate-400 mt-1">All 3 scenes are animated with natural Hindi/English voiceover and stitched with -16 LUFS broadcast audio normalization.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- INTERACTIVE COST & CREDIT CALCULATOR -->
-      <div class="lg:col-span-5 glass rounded-2xl p-6 space-y-4 border-emerald-500/30">
-        <div>
-          <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Interactive Cost Transparency</span>
-          <h3 class="text-lg font-bold text-white">DIY Subscription vs. Our Verified Pipeline</h3>
-        </div>
-
-        <div class="space-y-3">
-          <label class="block text-xs text-slate-300 font-medium">
-            How many finished 24-second AI Reels do you need per month?
-            <span id="reelCountLabel" class="float-right font-bold text-emerald-400 mono">4 Reels</span>
-          </label>
-          <input id="reelSlider" type="range" min="1" max="20" value="4" class="w-full accent-emerald-500 cursor-pointer" oninput="updateCostMath()" />
-        </div>
-
-        <div class="grid grid-cols-2 gap-3 text-xs">
-          <div class="p-3.5 rounded-xl bg-red-950/30 border border-red-800/40">
-            <div class="text-red-300 font-semibold">Doing It Yourself (DIY)</div>
-            <div id="diyCost" class="text-xl font-extrabold text-white mono mt-1">₹5,800</div>
-            <div class="text-slate-400 mt-1">Tool Subscription + ~55% wasted credits on face drift + 12 hrs editing</div>
-          </div>
-          <div class="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-700/40">
-            <div class="text-emerald-300 font-semibold">Our Verified Pipeline</div>
-            <div id="ourCost" class="text-xl font-extrabold text-emerald-400 mono mt-1">₹4,800</div>
-            <div class="text-slate-300 mt-1">100% Face-Locked, Pure Hindi/English Script + FFmpeg Mastered</div>
-          </div>
-        </div>
-
-        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
-          <span>Single Trial Reel (3 Scenes · 24 Seconds):</span>
-          <span class="font-bold text-white mono">₹1,200 Flat (Zero Hidden Fees)</span>
-        </div>
-
-        <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20want%20to%20order%20a%20verified%203-scene%20AI%20Reel%20(Rs%201200)%20using%20your%20pipeline." target="_blank" class="block w-full text-center py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-sm shadow-lg hover:opacity-95 transition">
-          🚀 Order 1 Verified Reel on WhatsApp (+91 7011165545)
-        </a>
-      </div>
-    </section>
-
-    <!-- FREE VALUE TOOL: RHYTHM-LOCKED 3-SCENE SCRIPT & PROMPT ARCHITECT -->
-    <section id="script-builder" class="glass rounded-2xl p-6 space-y-5 border border-emerald-500/40">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">FREE COMMUNITY TOOL (NO LOGIN REQUIRED)</span>
-          <h2 class="text-xl font-bold text-white mt-1">🧠 3-Scene Rhythm-Locked AI Video Script & Prompt Architect</h2>
-          <p class="text-xs text-slate-400">
-            Why do AI videos cut off speech at 8 seconds? Because the dialogue exceeds 14 words. Use our free calculator below to format your topic into a 3-scene (Hook → Secret → Benefit) script, or send it to us to render!
-          </p>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label class="text-xs text-slate-300 font-semibold block mb-1">1. Choose Channel / Niche Style</label>
-          <select id="nicheSelect" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2.5 text-sm text-white" onchange="generateFreePrompts()">
-            <option value="ayurveda">🌿 माँ का आयुर्वेद (Pure Hindi Wellness / Health Avatar)</option>
-            <option value="clinic">🦷 Doctor / Dental / Health Clinic (Educational Reel)</option>
-            <option value="d2c">✨ D2C Brand / Product Showcase (Commercial Reel)</option>
-            <option value="coach">📈 Finance / Trading / Business Coach (Authority Reel)</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-slate-300 font-semibold block mb-1">2. Main Topic or Remedy / Product</label>
-          <input id="topicInput" type="text" value="हल्दी वाला दूध पीने का सही आयुर्वेदिक तरीका" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white" oninput="generateFreePrompts()" />
-        </div>
-        <div>
-          <label class="text-xs text-slate-300 font-semibold block mb-1">3. Avatar Reference Description</label>
-          <input id="avatarInput" type="text" value="Indian mother with glasses, nose pin, and cream-gold dupatta" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white" oninput="generateFreePrompts()" />
-        </div>
-      </div>
-
-      <div id="promptOutputBox" class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2"></div>
-
-      <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800">
-        <p class="text-xs text-slate-400">
-          💡 Want to run these 3 prompts yourself in Google Flow? Copy them for free above! Don't want to pay for subscriptions or fight face drift? Let our pipeline render & master it for you.
-        </p>
-        <div class="flex items-center gap-2">
-          <button onclick="sendCustomScriptWhatsApp()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition">
-            📲 Render This Exact Script for Me (₹1,200 via WhatsApp)
-          </button>
-          <a href="mailto:manishkumarhooda@gmail.com?subject=AI%20Reel%20Pipeline%20Order" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition">
-            ✉️ Email: manishkumarhooda@gmail.com
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- AUDITED PRODUCTION SHOWCASE TABLE -->
-    <section class="glass rounded-2xl p-6 space-y-4">
-      <div>
-        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Verified Production Log</span>
-        <h2 class="text-lg font-bold text-white">Recent Pipeline Productions (2-Stage Identity Lock + -16 LUFS Audio)</h2>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse text-xs">
-          <thead>
-            <tr class="border-b border-slate-800 text-slate-400">
-              <th class="py-2.5 px-3">Pipeline ID</th>
-              <th class="py-2.5 px-3">Channel / Use Case</th>
-              <th class="py-2.5 px-3">Reference Input</th>
-              <th class="py-2.5 px-3">Language & Pacing</th>
-              <th class="py-2.5 px-3">Verification</th>
-              <th class="py-2.5 px-3">Turnaround</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800/70 mono">
-            <tr>
-              <td class="py-3 px-3 text-emerald-400 font-bold">#AYU-101</td>
-              <td class="py-3 px-3 font-sans text-white font-semibold">माँ का आयुर्वेद (Turmeric Milk Remedy)</td>
-              <td class="py-3 px-3">1 Smartphone Photo (9:16)</td>
-              <td class="py-3 px-3">Pure Hindi (3 × 8s Scenes)</td>
-              <td class="py-3 px-3 text-emerald-400">✅ Telegram Gate Verified</td>
-              <td class="py-3 px-3">Delivered to TG</td>
-            </tr>
-            <tr>
-              <td class="py-3 px-3 text-emerald-400 font-bold">#D2C-102</td>
-              <td class="py-3 px-3 font-sans text-white font-semibold">OLNATURO+ Herbal Wellness Showcase</td>
-              <td class="py-3 px-3">Product Bottle Reference</td>
-              <td class="py-3 px-3">English / Hindi Commercial</td>
-              <td class="py-3 px-3 text-emerald-400">✅ 100% Label Lock</td>
-              <td class="py-3 px-3">Delivered to TG</td>
-            </tr>
-            <tr>
-              <td class="py-3 px-3 text-emerald-400 font-bold">#CLN-103</td>
-              <td class="py-3 px-3 font-sans text-white font-semibold">Dental & Health Clinic Patient Educator</td>
-              <td class="py-3 px-3">Doctor Portrait Photo</td>
-              <td class="py-3 px-3">Polite Hindi / English</td>
-              <td class="py-3 px-3 text-emerald-400">✅ Zero Lip-Sync Cutoff</td>
-              <td class="py-3 px-3">Delivered to TG</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </section>
 
   </main>
 
-  <footer class="border-t border-slate-800/80 py-6 px-4 text-center text-xs text-slate-500">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-      <span>© 2026 TheBoldFrame AI Pipeline Studio · Built to help creators produce authentic videos without subscription waste.</span>
-      <span class="mono text-slate-400">WhatsApp: +91 7011165545 · Email: manishkumarhooda@gmail.com</span>
+  <footer class="border-t border-white/10 py-8 px-5 text-center text-xs text-slate-500">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <span>© 2026 BOLDFRAME VIDEO CREATION PARTNER · Studio-Grade AI Commercial Production</span>
+      <span class="text-slate-400">Direct WhatsApp: <strong class="text-emerald-400">+91 7011165545</strong> · Email: <strong class="text-white">manishkumarhooda@gmail.com</strong></span>
     </div>
   </footer>
 
-  <script>
-    function updateCostMath() {
-      const reels = parseInt(document.getElementById('reelSlider').value, 10);
-      document.getElementById('reelCountLabel').innerText = reels + (reels === 1 ? ' Reel' : ' Reels');
-      const diy = 4200 + (reels * 400);
-      const ours = reels * 1200;
-      document.getElementById('diyCost').innerText = '₹' + diy.toLocaleString('en-IN');
-      document.getElementById('ourCost').innerText = '₹' + ours.toLocaleString('en-IN');
-    }
-
-    function generateFreePrompts() {
-      const niche = document.getElementById('nicheSelect').value;
-      const topic = document.getElementById('topicInput').value.trim();
-      const avatar = document.getElementById('avatarInput').value.trim();
-
-      let s1 = '', s2 = '', s3 = '';
-      if (niche === 'ayurveda') {
-        s1 = 'रुकिए बच्चों... अगर आप भी ' + topic + ' का गलत तरीका अपना रहे हैं, तो ध्यान दें।';
-        s2 = 'आयुर्वेद के अनुसार, इसे हमेशा सही मात्रा और प्राकृतिक नियम के साथ ही लेना चाहिए।';
-        s3 = 'तभी आपका शरीर इसके पूरे गुण सोख पाएगा और आप हमेशा स्वस्थ रहेंगे।';
-      } else if (niche === 'clinic') {
-        s1 = 'रुकिए... अगर आप भी ' + topic + ' को नज़रअंदाज़ कर रहे हैं, तो यह जानना ज़रूरी है।';
-        s2 = 'सही समय पर जांच और आसान दैनिक देखभाल से आप बड़ी परेशानी से बच सकते हैं।';
-        s3 = 'स्वस्थ मुस्कान और सही सलाह के लिए आज ही हमारे क्लिनिक से जुड़ें।';
-      } else {
-        s1 = 'Stop scrolling—if you struggle with ' + topic + ', here is what actually works.';
-        s2 = 'Instead of temporary fixes, our precision formula locks in real results from day one.';
-        s3 = 'Message us today to experience the difference without wasting time or money.';
-      }
-
-      const scenes = [
-        { title: 'Scene 1 (0–8s: The Hook)', bg: 'warm sunlit setting', speech: s1 },
-        { title: 'Scene 2 (8–16s: The Secret)', bg: 'calm traditional room', speech: s2 },
-        { title: 'Scene 3 (16–24s: The Blessing/CTA)', bg: 'peaceful golden morning light', speech: s3 }
-      ];
-
-                  const container = document.getElementById('promptOutputBox');
-      container.innerHTML = scenes.map(function(sc) {
-        return '<div class="p-4 rounded-xl bg-slate-900/95 border border-slate-800 space-y-2">' +
-          '<div class="text-xs font-bold text-emerald-400 mono">' + sc.title + '</div>' +
-          '<div class="text-xs text-amber-200 font-semibold">Dialogue: "' + sc.speech + '"</div>' +
-          '<div class="text-[11px] text-slate-400 mono bg-black/40 p-2.5 rounded-lg border border-slate-800">' +
-            '<b>Stage 1 Image Prompt:</b> Using this exact reference photo of ' + avatar + ', keep exact real face 100% identical in a ' + sc.bg + ', 9:16.<br/><br/>' +
-            '<b>Stage 2 Video Prompt:</b> Using attached scene image as starting frame, calm lip-sync speaking: "' + sc.speech + '"' +
-          '</div>' +
-        '</div>';
-      }).join('');
-    }
-
-    function sendCustomScriptWhatsApp() {
-      var topic = document.getElementById('topicInput').value.trim();
-      var avatar = document.getElementById('avatarInput').value.trim();
-      var msg = encodeURIComponent('Hi Manish, I used your Free Script Architect on the website.
-
-Topic: ' + topic + '
-Avatar/Reference: ' + avatar + '
-
-I want to get this 3-scene AI Reel created via your pipeline (Rs 1200).');
-      window.open('https://wa.me/917011165545?text=' + msg, '_blank');
-    }\nAvatar/Reference: ${avatar}\n\nI want to get this 3-scene AI Reel created via your pipeline (Rs 1200).`);
-      window.open(`https://wa.me/917011165545?text=${msg}`, '_blank');
-    }
-
-    generateFreePrompts();
-  </script>
 </body>
 </html>
