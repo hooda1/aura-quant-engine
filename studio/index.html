@@ -27,8 +27,8 @@
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-10 space-y-16">
-    <!-- HERO + 16:9 COMMERCIAL VSL -->
+  <main class="max-w-6xl mx-auto px-4 py-10 space-y-20">
+    <!-- SECTION 1: HERO + 16:9 AUTHORITATIVE VSL -->
     <section class="text-center max-w-3xl mx-auto space-y-5">
       <div class="inline-block px-4 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-xs text-emerald-300 font-bold" id="vipBanner">
         Launch Offer: AI Video Reels from ₹599 &middot; Studio Product Photos from ₹299
@@ -41,90 +41,120 @@
       </p>
 
       <div class="vsl-frame w-full">
-        <video id="vslPlayer" src="assets/founder_vsl_16x9.mp4?v=1794358442" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
+        <video id="vslPlayer" src="assets/founder_vsl_16x9.mp4?v=1794359469" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
         <button id="vslSoundBtn" onclick="toggleVslAudio()"
                 class="absolute inset-0 m-auto w-72 h-12 rounded-full bg-emerald-400 text-black font-extrabold text-xs sm:text-sm shadow-2xl flex items-center justify-center gap-2">
           🔊 TAP HERE TO UNMUTE HINDI BRIEFING
         </button>
       </div>
 
-      <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20watched%20your%20showreel%20and%20want%20a%20Free%20Demo%20Preview%20(Starting%20at%20Rs%20599)!"
+      <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20watched%20your%20briefing%20and%20want%20a%20Free%20Demo%20Preview%20(Starting%20at%20Rs%20599)!"
          target="_blank" class="inline-block w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-extrabold text-sm shadow-xl">
         📲 Get Your Free Demo on WhatsApp (+91 7011165545) &rarr;
       </a>
     </section>
 
-    <!-- 6-INDUSTRY SYMMETRICAL VIDEO GRID (CUSTOM AUDIO TOGGLE, NO BROKEN NATIVE CONTROLS) -->
+    <!-- SECTION 2: ALL 3 ORIGINAL SPEAKING AI AVATAR REELS (RESTORED!) -->
+    <section class="space-y-6">
+      <div class="text-center space-y-1">
+        <div class="text-xs uppercase tracking-widest text-emerald-400 font-bold">100% Face &amp; Lip-Sync Identity Lock</div>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Live Speaking AI Avatar Productions</h2>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div class="cred-card rounded-3xl p-4 space-y-3 border border-emerald-500/30">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-extrabold text-emerald-400">Avatar 01 &middot; Brand Spokesperson</span>
+            <button onclick="playWithSound('av1')" class="px-2.5 py-1 rounded-full bg-emerald-400 text-[11px] font-extrabold text-black">🔊 Hear Audio</button>
+          </div>
+          <div class="phone-frame"><video id="av1" data-src="assets/showcase_1.mp4?v=1794359469" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
+          <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20want%20a%20Speaking%20Avatar%20Reel%20like%20Avatar%2001%20(Rs%20599)!" target="_blank" class="block text-center py-2.5 rounded-xl bg-emerald-400 text-black font-extrabold text-xs">Request Avatar 01 Demo &rarr;</a>
+        </div>
+
+        <div class="cred-card rounded-3xl p-4 space-y-3 border border-amber-500/30">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-extrabold text-amber-300">Avatar 02 &middot; Wellness &amp; Explainer</span>
+            <button onclick="playWithSound('av2')" class="px-2.5 py-1 rounded-full bg-amber-400 text-[11px] font-extrabold text-black">🔊 Hear Audio</button>
+          </div>
+          <div class="phone-frame"><video id="av2" data-src="assets/showcase_2.mp4?v=1794359469" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
+          <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20want%20an%20Explainer%20Reel%20like%20Avatar%2002%20(Rs%20599)!" target="_blank" class="block text-center py-2.5 rounded-xl bg-amber-400 text-black font-extrabold text-xs">Request Avatar 02 Demo &rarr;</a>
+        </div>
+
+        <div class="cred-card rounded-3xl p-4 space-y-3 border border-sky-500/30">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-extrabold text-sky-300">Avatar 03 &middot; Hindi Storyteller</span>
+            <button onclick="playWithSound('av3')" class="px-2.5 py-1 rounded-full bg-sky-400 text-[11px] font-extrabold text-black">🔊 Hear Audio</button>
+          </div>
+          <div class="phone-frame"><video id="av3" data-src="assets/showcase_3.mp4?v=1794359469" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
+          <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20want%20a%20Storyteller%20Reel%20like%20Avatar%2003%20(Rs%20599)!" target="_blank" class="block text-center py-2.5 rounded-xl bg-sky-400 text-black font-extrabold text-xs">Request Avatar 03 Demo &rarr;</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: 6 SPECIALIZED INDUSTRY COMMERCIAL VIDEO REELS -->
     <section class="space-y-6">
       <div class="text-center space-y-1">
         <div class="text-xs uppercase tracking-widest text-amber-400 font-bold">6 Specialized Industry Pipelines</div>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Tap Any Industry Reel to Hear Voiceover</h2>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white">6 Industry-Specific 9:16 Commercial Reels</h2>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Card 1 -->
         <div class="cred-card rounded-3xl p-4 space-y-3">
           <div class="flex justify-between items-center">
             <span class="text-xs font-extrabold text-emerald-400">01 &middot; D2C Skincare &amp; Ayurveda</span>
             <button onclick="playWithSound('vid1')" class="px-2.5 py-1 rounded-full bg-white/10 text-[11px] font-bold text-white">🔊 Hear Audio</button>
           </div>
-          <div class="phone-frame"><video id="vid1" data-src="assets/niche_1_skincare.mp4?v=1794358442" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
+          <div class="phone-frame"><video id="vid1" data-src="assets/niche_1_skincare.mp4?v=1794359469" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
           <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20want%20a%20Free%20D2C%20Skincare%20Video%20Demo%20(Rs%20599)!" target="_blank" class="block text-center py-2.5 rounded-xl bg-emerald-400 text-black font-extrabold text-xs">Claim D2C Demo &rarr;</a>
         </div>
 
-        <!-- Card 2 -->
         <div class="cred-card rounded-3xl p-4 space-y-3">
           <div class="flex justify-between items-center">
             <span class="text-xs font-extrabold text-sky-400">02 &middot; Doctors &amp; Health Clinics</span>
             <button onclick="playWithSound('vid2')" class="px-2.5 py-1 rounded-full bg-white/10 text-[11px] font-bold text-white">🔊 Hear Audio</button>
           </div>
-          <div class="phone-frame"><video id="vid2" data-src="assets/niche_2_doctor.mp4?v=1794358442" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
+          <div class="phone-frame"><video id="vid2" data-src="assets/niche_2_doctor.mp4?v=1794359469" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
           <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20want%20a%20Free%20Doctor%2FClinic%20Video%20Demo%20(Rs%20599)!" target="_blank" class="block text-center py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs">Claim Clinic Demo &rarr;</a>
         </div>
 
-        <!-- Card 3 -->
         <div class="cred-card rounded-3xl p-4 space-y-3">
           <div class="flex justify-between items-center">
             <span class="text-xs font-extrabold text-amber-300">03 &middot; Fitness &amp; Supplements</span>
             <button onclick="playWithSound('vid3')" class="px-2.5 py-1 rounded-full bg-white/10 text-[11px] font-bold text-white">🔊 Hear Audio</button>
           </div>
-          <div class="phone-frame"><video id="vid3" data-src="assets/niche_3_fitness.mp4?v=1794358442" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
+          <div class="phone-frame"><video id="vid3" data-src="assets/niche_3_fitness.mp4?v=1794359469" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
           <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20want%20a%20Free%20Fitness%20Video%20Demo%20(Rs%20599)!" target="_blank" class="block text-center py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs">Claim Fitness Demo &rarr;</a>
         </div>
 
-        <!-- Card 4 -->
         <div class="cred-card rounded-3xl p-4 space-y-3">
           <div class="flex justify-between items-center">
             <span class="text-xs font-extrabold text-pink-300">04 &middot; Jewellery &amp; Boutiques</span>
             <button onclick="playWithSound('vid4')" class="px-2.5 py-1 rounded-full bg-white/10 text-[11px] font-bold text-white">🔊 Hear Audio</button>
           </div>
-          <div class="phone-frame"><video id="vid4" data-src="assets/niche_4_jewellery.mp4?v=1794358442" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
+          <div class="phone-frame"><video id="vid4" data-src="assets/niche_4_jewellery.mp4?v=1794359469" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
           <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20want%20a%20Free%20Jewellery%20Video%20Demo%20(Rs%20599)!" target="_blank" class="block text-center py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs">Claim Fashion Demo &rarr;</a>
         </div>
 
-        <!-- Card 5 -->
         <div class="cred-card rounded-3xl p-4 space-y-3">
           <div class="flex justify-between items-center">
             <span class="text-xs font-extrabold text-purple-300">05 &middot; Real Estate &amp; Interiors</span>
             <button onclick="playWithSound('vid5')" class="px-2.5 py-1 rounded-full bg-white/10 text-[11px] font-bold text-white">🔊 Hear Audio</button>
           </div>
-          <div class="phone-frame"><video id="vid5" data-src="assets/niche_5_realestate.mp4?v=1794358442" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
+          <div class="phone-frame"><video id="vid5" data-src="assets/niche_5_realestate.mp4?v=1794359469" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
           <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20want%20a%20Free%20Real%20Estate%20Video%20Demo%20(Rs%20599)!" target="_blank" class="block text-center py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs">Claim Property Demo &rarr;</a>
         </div>
 
-        <!-- Card 6: Live Speaking AI Avatar -->
-        <div class="cred-card rounded-3xl p-4 space-y-3 border border-emerald-500/40">
+        <div class="cred-card rounded-3xl p-4 space-y-3">
           <div class="flex justify-between items-center">
-            <span class="text-xs font-extrabold text-emerald-300">06 &middot; Speaking AI Brand Avatar</span>
-            <button onclick="playWithSound('vid6')" class="px-2.5 py-1 rounded-full bg-emerald-400 text-[11px] font-extrabold text-black">🔊 Hear Lip-Sync</button>
+            <span class="text-xs font-extrabold text-amber-400">06 &middot; Hospitality, Hotels &amp; Cafes</span>
+            <button onclick="playWithSound('vid6')" class="px-2.5 py-1 rounded-full bg-white/10 text-[11px] font-bold text-white">🔊 Hear Audio</button>
           </div>
-          <div class="phone-frame"><video id="vid6" data-src="assets/showcase_1.mp4?v=1794358442" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
-          <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20want%20a%20Free%20Speaking%20Avatar%20Video%20Demo%20(Rs%20599)!" target="_blank" class="block text-center py-2.5 rounded-xl bg-emerald-400 text-black font-extrabold text-xs">Claim Avatar Demo &rarr;</a>
+          <div class="phone-frame"><video id="vid6" data-src="assets/niche_6_hospitality.mp4?v=1794359469" loop muted playsinline class="niche-vid w-full h-full object-cover"></video></div>
+          <a href="https://wa.me/917011165545?text=Hi%20Manish%2C%20I%20want%20a%20Free%20Hospitality%2FCafe%20Video%20Demo%20(Rs%20599)!" target="_blank" class="block text-center py-2.5 rounded-xl bg-amber-400 text-black font-extrabold text-xs">Claim Hospitality Demo &rarr;</a>
         </div>
       </div>
     </section>
 
-    <!-- STILL IMAGE CATALOGUE SECTION (₹299) -->
+    <!-- SECTION 4: STILL IMAGE CATALOGUE SECTION (₹299) -->
     <section class="cred-card rounded-3xl p-6 sm:p-8 space-y-6 border border-amber-500/30">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -137,18 +167,17 @@
         </a>
       </div>
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <img src="assets/still_1_skincare.jpg?v=1794358442" class="rounded-xl h-40 w-full object-cover border border-white/10" />
-        <img src="assets/still_2_doctor.jpg?v=1794358442" class="rounded-xl h-40 w-full object-cover border border-white/10" />
-        <img src="assets/still_3_fitness.jpg?v=1794358442" class="rounded-xl h-40 w-full object-cover border border-white/10" />
-        <img src="assets/still_4_jewellery.jpg?v=1794358442" class="rounded-xl h-40 w-full object-cover border border-white/10" />
-        <img src="assets/still_5_realestate.jpg?v=1794358442" class="rounded-xl h-40 w-full object-cover border border-white/10" />
-        <img src="assets/still_6_hospitality.jpg?v=1794358442" class="rounded-xl h-40 w-full object-cover border border-white/10" />
+        <img src="assets/still_1_skincare.jpg?v=1794359469" class="rounded-xl h-40 w-full object-cover border border-white/10" />
+        <img src="assets/still_2_doctor.jpg?v=1794359469" class="rounded-xl h-40 w-full object-cover border border-white/10" />
+        <img src="assets/still_3_fitness.jpg?v=1794359469" class="rounded-xl h-40 w-full object-cover border border-white/10" />
+        <img src="assets/still_4_jewellery.jpg?v=1794359469" class="rounded-xl h-40 w-full object-cover border border-white/10" />
+        <img src="assets/still_5_realestate.jpg?v=1794359469" class="rounded-xl h-40 w-full object-cover border border-white/10" />
+        <img src="assets/still_6_hospitality.jpg?v=1794359469" class="rounded-xl h-40 w-full object-cover border border-white/10" />
       </div>
     </section>
   </main>
 
   <script>
-    // 1. VSL Unmute on Genuine Click Only (Never pauses or blacks out!)
     function toggleVslAudio() {
       var v = document.getElementById('vslPlayer');
       var b = document.getElementById('vslSoundBtn');
@@ -159,7 +188,6 @@
       b.style.display = 'none';
     }
 
-    // 2. Play any industry card with sound while muting others
     function playWithSound(id) {
       document.getElementById('vslPlayer').muted = true;
       document.querySelectorAll('.niche-vid').forEach(function(v) {
@@ -175,7 +203,6 @@
       });
     }
 
-    // 3. Lazy-load & play at most 2 visible cards at a time so Android Chrome never hits the 4-decoder limit
     document.addEventListener('DOMContentLoaded', function() {
       var vids = document.querySelectorAll('.niche-vid');
       var obs = new IntersectionObserver(function(entries) {
