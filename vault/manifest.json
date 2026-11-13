@@ -1,0 +1,16 @@
+{
+  "name": "AURA Vault — Zero-Knowledge AES-256 Storage",
+  "short_name": "AURA Vault",
+  "description": "Zero-Knowledge Plausible Deniability Pattern Vault. Every pattern opens a separate AES-256-GCM encrypted vault on iOS & Android.",
+  "start_url": "/aura-quant-engine/vault/",
+  "display": "standalone",
+  "background_color": "#050811",
+  "theme_color": "#facc15",
+  "icons": [
+    {
+      "src": "https://hooda1.github.io/aura-quant-engine/assets/blogger_1200x630.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
