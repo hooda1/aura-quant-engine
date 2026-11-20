@@ -1,1 +1,68 @@
+name: BoldFrame 3x Daily Autonomous Publisher
 
+on:
+  schedule:
+    - cron: '30 1 * * *'
+    - cron: '0 13 * * *'
+    - cron: '30 15 * * *'
+  workflow_dispatch:
+    inputs:
+      slot_override:
+        description: 'Slot mode (auto / morning / evening / night)'
+        required: false
+        default: 'auto'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests tweepy praw playwright
+          playwright install --with-deps chromium
+
+      - name: Run Autonomous Publisher
+        env:
+          SLOT_OVERRIDE: ${{ github.event.inputs.slot_override || 'auto' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+          REDDIT_PASSWORD: ${{ secrets.REDDIT_PASSWORD }}
+          MEDIUM_TOKEN: ${{ secrets.MEDIUM_TOKEN }}
+        run: python3 pipeline/publish_all.py
+
+      - name: Commit updated assets and state
+        run: |
+          git config user.name "BoldFrame Cloud Bot"
+          git config user.email "bot@boldframe.local"
+          git add assets/ guides/ pipeline/state.json
+          [ -f sitemap.xml ] && git add sitemap.xml || true
+          [ -f feed.xml ] && git add feed.xml || true
+          git diff --staged --quiet || git commit -m "chore(auto): publish scheduled slot assets, guide & state"
+          git push origin main
