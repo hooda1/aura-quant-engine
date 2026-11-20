@@ -1,0 +1,13 @@
+{
+  "last_idx": 0,
+  "reddit_last_date": "",
+  "seo_last_date": "2026-11-21",
+  "published_guides": [
+    {
+      "slug": "offline-seed-phrase-plausible-deniability-vault-2026-11-21",
+      "title": "How to Store Crypto Seed Phrases & Sensitive IDs Offline With Plausible Deniability",
+      "date": "2026-11-21",
+      "desc": "Most 'encrypted' mobile vaults fail the moment someone forces you to unlock your phone.\n\nWhy? Because a standard password box confirms the vault exists\u2014and most apps sync encrypted blobs to a cloud database you don't control.\n\nAt BoldFrame AI Studio, we engineered the AURA Zero-K"
+    }
+  ]
+}
