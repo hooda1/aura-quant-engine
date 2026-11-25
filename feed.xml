@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel><title>BoldFrame AI Studio</title><link>https://hooda1.github.io/aura-quant-engine/</link><description>AI Inventions, Zero-Knowledge Security & Quant Systems</description>
+  <item><title>Why Direct API Cloud Pipelines Beat Headless Browser Automation for Multi-Platform Publishing</title><link>https://hooda1.github.io/aura-quant-engine/guides/direct-api-github-actions-vs-headless-browser-bots-2026-11-26.html</link><description>If your automation pipeline relies on clicking buttons inside a headless browser, you don't have an automation—you have a full-time babysitting job.
+
+Every time a platform updates a CSS class, triggers a 'Verify it's you' prompt, or locks a Chromium profile, the whole stack goes </description></item>
   <item><title>How to Store Crypto Seed Phrases &amp; Sensitive IDs Offline With Plausible Deniability</title><link>https://hooda1.github.io/aura-quant-engine/guides/offline-seed-phrase-plausible-deniability-vault-2026-11-25.html</link><description>Most 'encrypted' mobile vaults fail the moment someone forces you to unlock your phone.
 
 Why? Because a standard password box confirms the vault exists—and most apps sync encrypted blobs to a cloud database you don't control.
