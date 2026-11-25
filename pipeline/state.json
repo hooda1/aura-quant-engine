@@ -1,5 +1,5 @@
 {
-  "last_idx": 2,
+  "last_idx": 0,
   "reddit_last_date": "",
   "seo_last_date": "2026-11-26",
   "published_guides": [
@@ -62,6 +62,12 @@
       "title": "Why Direct API Cloud Pipelines Beat Headless Browser Automation for Multi-Platform Publishing",
       "date": "2026-11-26",
       "desc": "If your automation pipeline relies on clicking buttons inside a headless browser, you don't have an automation\u2014you have a full-time babysitting job.\n\nEvery time a platform updates a CSS class, triggers a 'Verify it's you' prompt, or locks a Chromium profile, the whole stack goes "
+    },
+    {
+      "slug": "offline-seed-phrase-plausible-deniability-vault-2026-11-26",
+      "title": "How to Store Crypto Seed Phrases & Sensitive IDs Offline With Plausible Deniability",
+      "date": "2026-11-26",
+      "desc": "Most 'encrypted' mobile vaults fail the moment someone forces you to unlock your phone.\n\nWhy? Because a standard password box confirms the vault exists\u2014and most apps sync encrypted blobs to a cloud database you don't control.\n\nAt BoldFrame AI Studio, we engineered the AURA Zero-K"
     }
   ]
 }
